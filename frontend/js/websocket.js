@@ -207,22 +207,30 @@ class WebSocketManager {
         // Display results
         const resultsDiv = document.getElementById('transcriptionResults');
         if (resultsDiv) {
+            const sentiment = insights.sentiment || { overall_sentiment: 'UNKNOWN', reasoning: '' };
+
             resultsDiv.innerHTML = `
                 <div class="results-container">
-                    <h3>📝 Transcript</h3>
-                    <div class="transcript-text">
-                        ${transcript.text || 'No speech detected'}
-                    </div>
-                    
                     <h3>💡 AI Summary</h3>
                     <div class="summary-text">
                         ${insights.summary || 'No summary available'}
                     </div>
+
+                    <h3>Sentiment Analysis</h3>
+                    <div class="sentiment-badge ${sentiment.overall_sentiment.toLowerCase()}">
+                        Overall Sentiment: ${sentiment.overall_sentiment}
+                    </div>
+                    <p><em>${sentiment.reasoning || ''}</em></p>
                     
+                    ${insights.attendees && insights.attendees.length > 0 ? `
+                        <h3>👥 Attendees</h3>
+                        <p>${insights.attendees.join(', ')}</p>
+                    ` : ''}
+
                     ${insights.action_items && insights.action_items.length > 0 ? `
                         <h3>✅ Action Items</h3>
                         <ul class="action-items">
-                            ${insights.action_items.map(item => `<li>${item}</li>`).join('')}
+                            ${insights.action_items.map(item => `<li><strong>${item.task || 'N/A'}</strong> (Owner: ${item.owner || 'Unassigned'}, Deadline: ${item.deadline || 'N/A'})</li>`).join('')}
                         </ul>
                     ` : ''}
                     
@@ -233,8 +241,9 @@ class WebSocketManager {
                         </ul>
                     ` : ''}
                     
-                    <div class="sentiment-badge ${insights.sentiment.toLowerCase()}">
-                        Sentiment: ${insights.sentiment}
+                    <h3>📝 Full Transcript</h3>
+                    <div class="transcript-text">
+                        ${transcript.text || 'No speech detected'}
                     </div>
                 </div>
             `;

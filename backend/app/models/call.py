@@ -26,15 +26,14 @@ class Call(Base):
     
     # AI Analysis
     summary = Column(Text, nullable=True)
-    sentiment = Column(String, nullable=True)  # positive, negative, neutral
+    sentiment = Column(JSON, nullable=True)  # positive, negative, neutral
     confidence_score = Column(Float, nullable=True)
     
     # Extracted data
     action_items = Column(JSON, default=[])
     key_decisions = Column(JSON, default=[])
-    participants = Column(JSON, default=[])
     topics = Column(JSON, default=[])
-    
+    attendees = Column(JSON, default=[])
     # Status
     status = Column(String, default="in_progress")  # in_progress, completed, failed
     

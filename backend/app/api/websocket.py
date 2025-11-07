@@ -293,11 +293,15 @@ async def websocket_endpoint(
                         call.end_time = datetime.utcnow()
                         call.duration_seconds = int((call.end_time - call.start_time).total_seconds())
                         call.full_transcript_text = transcript_data.get('text', '')
-                        call.transcript = transcript_data
+                        call.transcript = transcript_data # Storing the full STT result is good practice
+                        
+                        # Save the new structured data
                         call.summary = insights.get('summary')
-                        call.sentiment = insights.get('sentiment')
+                        call.sentiment = insights.get('sentiment') # This is now an object
                         call.action_items = insights.get('action_items', [])
                         call.key_decisions = insights.get('key_decisions', [])
+                        call.attendees = insights.get('attendees', []) # Save the new attendees field
+                        
                         call.status = "completed"
                         db.commit()
                         
@@ -349,4 +353,8 @@ async def websocket_endpoint(
         crm_service.close()
         
         if temp_audio_path and os.path.exists(temp_audio_path):
+            print(f"🧹 Deleting temporary file: {temp_audio_path}")
             os.remove(temp_audio_path)
+        if debug_audio_path and os.path.exists(debug_audio_path):
+             print(f"🧹 Deleting debug file: {debug_audio_path}")
+             os.remove(debug_audio_path)

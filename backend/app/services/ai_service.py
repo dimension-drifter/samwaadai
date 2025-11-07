@@ -18,9 +18,9 @@ class AIService:
             raise ValueError("GEMINI_API_KEY not set in environment")
         
         genai.configure(api_key=settings.GEMINI_API_KEY)
-        
-        # Use Gemini 1.5 Flash for fast responses
-        self.model = genai.GenerativeModel('gemini-2.5-flash')
+
+        # Use Gemini 2.5 Pro for advanced capabilities
+        self.model = genai.GenerativeModel('gemini-2.5-pro')
         
         # Generation config for structured output
         self.json_config = {
@@ -44,45 +44,60 @@ class AIService:
         # Use speaker-labeled utterances for better context
         full_text = "\n".join([f"Speaker {u['speaker']}: {u['text']}" for u in transcript_data.get('utterances', [])])
         
-        if not full_text:
-            return {
-                'summary': 'No content to analyze.',
-                'action_items': [],
-                'key_decisions': [],
-                'sentiment': 'NEUTRAL'
-            }
+        if not full_text or len(full_text) < 20: # Added a length check for very short inputs
+            return self._default_insights() # Use a helper to return a default structure
 
-        prompt = f"""Analyze the following meeting transcript.
+        # --- START OF THE NEW, SUPERCHARGED PROMPT ---
+        prompt = f"""
+        You are an expert AI meeting analyst. Your task is to analyze the following meeting transcript and extract detailed, structured information.
 
         Transcript:
         ---
         {full_text}
         ---
 
-        Format your response as a JSON object with the following keys: "summary", "action_items", "key_decisions", "sentiment".
-        - "summary": A brief paragraph summarizing the meeting.
-        - "action_items": A list of JSON objects, where each object has a "task" key (the action) and an optional "person" key (who is assigned). For example: [{{"task": "Send the report", "person": "Sarah"}}].
-        - "key_decisions": A list of strings, where each string is a key decision made.
-        - "sentiment": A single word: POSITIVE, NEGATIVE, or NEUTRAL.
+        Analyze the entire transcript and respond ONLY with a single, valid JSON object. The JSON object must have the following keys:
+
+        1.  "summary": A concise, professional paragraph summarizing the key topics and outcomes of the meeting.
+        
+        2.  "sentiment": An object analyzing the overall meeting sentiment. It must contain:
+            - "overall_sentiment": A single word: "POSITIVE", "NEGATIVE", or "NEUTRAL".
+            - "reasoning": A brief sentence explaining why this sentiment was chosen, citing parts of the conversation.
+
+        3.  "attendees": A list of strings identifying the names of the people who spoke or were mentioned in the meeting.
+
+        4.  "action_items": A list of JSON objects. Each object represents a clear, actionable task and must contain:
+            - "task": A string describing the specific action to be taken.
+            - "owner": A string identifying the person or team responsible for the task. Default to "Unassigned" if not clear.
+            - "deadline": A string representing the due date or timeframe mentioned (e.g., "next Friday", "EOD tomorrow"). Default to "Not specified" if none.
+
+        5.  "key_decisions": A list of strings, where each string is a significant decision or commitment made during the meeting.
+
+        Do not include any text or explanations outside of the JSON object.
         """
         
         try:
-            response = await self.model.generate_content_async(prompt)
+            # Your existing Gemini call is perfect. No changes needed here.
+            response = await self.model.generate_content_async(
+                prompt,
+                generation_config=self.json_config # Assuming this sets response_mime_type to json
+            )
             
             # Clean and parse the JSON response
             cleaned_response = response.text.strip().replace("```json", "").replace("```", "")
             insights = json.loads(cleaned_response)
             
+            # Ensure all keys exist to prevent errors later
+            for key in ['summary', 'sentiment', 'attendees', 'action_items', 'key_decisions']:
+                if key not in insights:
+                    insights[key] = self._default_insights()[key] # Use default for missing keys
+            
+            print("✅ AI generated comprehensive insights.")
             return insights
         except Exception as e:
             print(f"❌ Error generating insights with Gemini: {str(e)}")
             # Fallback in case of AI failure
-            return {
-                'summary': 'Failed to generate summary.',
-                'action_items': [],
-                'key_decisions': [],
-                'sentiment': 'UNKNOWN'
-            }
+            return self._default_insights()
 
     
     async def analyze_sentiment(self, text: str) -> Dict:

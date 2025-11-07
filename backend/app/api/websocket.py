@@ -6,12 +6,15 @@ from app.services.stt_service import STTService
 from app.services.ai_service import AIService
 from app.services.crm_service import CRMService
 from datetime import datetime
+from app.services.calendar_service import CalendarService
 import json
 import os
 import wave
 import tempfile
 import struct
 import shutil
+from datetime import datetime
+import dateutil.parser
 
 router = APIRouter()
 
@@ -133,6 +136,7 @@ async def websocket_endpoint(
     stt_service = STTService()
     ai_service = AIService()
     crm_service = CRMService()
+    calendar_service = CalendarService()
     
     call = db.query(Call).filter(Call.id == call_id).first()
     if not call:
@@ -151,6 +155,7 @@ async def websocket_endpoint(
     debug_audio_path = None
     sample_rate = 48000
     is_float32 = False
+    user_timezone = "UTC"
 
     try:
         await websocket.send_json({
@@ -167,13 +172,21 @@ async def websocket_endpoint(
                 message_type = message.get("type")
                 
                 print(f"📩 Message: {message_type}")
-                
                 if message_type == "audio_config":
                     sample_rate = message.get("sampleRate", 48000)
                     is_float32 = message.get("isFloat32", False)
+                    user_timezone = message.get("timezone", "UTC") # Capture the timezone here
                     print(f"🎛️ Audio config: {sample_rate}Hz, {'Float32' if is_float32 else 'Int16'}")
+                    print(f"🌍 User timezone set to: {user_timezone}")
                     continue
-                
+
+                if message_type == "start_recording":
+                    await websocket.send_json({
+                        "type": "recording_started",
+                        "message": "Recording audio..."
+                    })
+                    continue
+
                 if message_type == "stop_recording":
                     await websocket.send_json({
                         "type": "processing_started",
@@ -212,6 +225,54 @@ async def websocket_endpoint(
                                 'sentiment': 'NEUTRAL'
                             }
                         
+                        full_text = transcript_data.get('text', '')
+
+                        # --- START OF NEW LOGIC ---
+
+                        # 1. Generate general insights (as before)
+                        print("🧠 Generating general insights...")
+                        insights = await ai_service.extract_meeting_insights(transcript_data)
+
+                        # 2. Extract specific actionable tasks
+                        print("🤖 Looking for actionable tasks like scheduling...")
+                        actionable_tasks = await ai_service.extract_actionable_tasks(full_text)
+
+                        # 3. Loop through tasks and execute them
+                        for task in actionable_tasks:
+                            if task.get("type") == "CREATE_CALENDAR_EVENT":
+                                print(f"📅 Found a calendar event task: {task.get('summary')}")
+                                
+                                # Authenticate calendar service (it handles its own token)
+                                if calendar_service.authenticate():
+                                    try:
+                                        # Parse the ISO formatted string from the AI
+                                        start_time = dateutil.parser.isoparse(task.get("start_time"))
+                                        
+                                        event_result = await calendar_service.create_event(
+                                        summary=task.get("summary"),
+                                        description=task.get("description", "Event scheduled by Samwaad AI."),
+                                        start_time=start_time,
+                                        duration_minutes=int(task.get("duration_minutes", 30)),
+                                        attendees=task.get("attendees", []),
+                                        timezone=user_timezone
+                                        )
+
+                                        if event_result:
+                                            print(f"✅ Successfully created calendar event: {event_result.get('link')}")
+                                            # Notify the frontend that a task was completed!
+                                            await websocket.send_json({
+                                                "type": "task_executed",
+                                                "task_type": "Calendar Event",
+                                                "summary": f"Created event: {task.get('summary')}",
+                                                "details": event_result
+                                            })
+                                        else:
+                                            print("❌ Failed to create calendar event.")
+
+                                    except Exception as cal_error:
+                                        print(f"❌ Error executing calendar task: {cal_error}")
+                                else:
+                                    print("⚠️ Could not authenticate with Google Calendar. Skipping task.")
                         # Update database
                         call.end_time = datetime.utcnow()
                         call.duration_seconds = int((call.end_time - call.start_time).total_seconds())

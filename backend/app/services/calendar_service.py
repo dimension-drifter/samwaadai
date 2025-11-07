@@ -84,7 +84,8 @@ class CalendarService:
         start_time: datetime,
         duration_minutes: int = 30,
         attendees: Optional[List[str]] = None,
-        location: Optional[str] = None
+        location: Optional[str] = None,
+        timezone: str = "UTC"
     ) -> Optional[Dict]:
         """
         Create a calendar event
@@ -113,11 +114,11 @@ class CalendarService:
                 'description': description,
                 'start': {
                     'dateTime': start_time.isoformat(),
-                    'timeZone': 'UTC',
+                    'timeZone': timezone, # MODIFICATION 2: Use the timezone variable
                 },
                 'end': {
                     'dateTime': end_time.isoformat(),
-                    'timeZone': 'UTC',
+                    'timeZone': timezone,
                 },
                 'reminders': {
                     'useDefault': False,

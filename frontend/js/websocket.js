@@ -39,7 +39,18 @@ class WebSocketManager {
 
             this.ws.onopen = () => {
                 console.log('✅ WebSocket connected');
+                const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                console.log(`🌍 User timezone detected: ${userTimezone}`);
                 
+                // Send audio configuration AND the new timezone
+                this.ws.send(JSON.stringify({
+                    type: 'audio_config',
+                    sampleRate: audioContext.sampleRate,
+                    channels: 1,
+                    sampleWidth: 2,
+                    isFloat32: false,
+                    timezone: userTimezone // ADD THIS LINE
+                }));
                 // Send audio configuration
                 this.ws.send(JSON.stringify({
                     type: 'audio_config',
@@ -97,6 +108,9 @@ class WebSocketManager {
                 } else if (message.type === 'processing_started') {
                     console.log('⏳ Processing:', message.message);
                     this.showProcessingUI();
+                } else if (message.type === 'task_executed') {
+                    console.log('✅ Task Executed:', message);
+                    alert(`✅ AI Action Complete: ${message.summary}`);
                 } else if (message.type === 'call_completed') {
                     console.log('✅ Transcription completed!');
                     this.handleTranscriptionComplete(message);

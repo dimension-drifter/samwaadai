@@ -293,7 +293,63 @@ class AIService:
             "next_steps": []
         }
 
+    # Add this method inside the AIService class in ai_service.py
 
+    async def extract_actionable_tasks(self, full_text: str) -> List[Dict]:
+        """
+        Extracts specific, structured tasks like calendar events from a transcript.
+        """
+        if not full_text:
+            return []
+
+        # We will give the AI an example to ensure it returns the correct format.
+        # This is called "few-shot prompting" and is incredibly powerful.
+        prompt = f"""
+        Analyze the following meeting transcript. Your goal is to identify and extract any tasks that involve scheduling a meeting.
+        If you find a scheduling task, you MUST format it as a JSON object within a list.
+
+        The current date is: {datetime.now().strftime('%Y-%m-%d')}
+
+        Example:
+        Transcript: "...okay so let's schedule a follow-up with the design team for next Friday at 3 PM to review the mockups for about 45 minutes..."
+        Your JSON output:
+        [
+            {{
+                "type": "CREATE_CALENDAR_EVENT",
+                "summary": "Follow-up with design team to review mockups",
+                "attendees": ["design_team@example.com"],
+                "start_time": "YYYY-MM-DDTHH:MM:SS",  // Calculate 'next Friday at 3 PM' and put it here
+                "duration_minutes": 45,
+                "description": "Follow-up meeting to review the latest design mockups."
+            }}
+        ]
+        
+        Now, analyze this new transcript:
+        ---
+        {full_text}
+        ---
+
+        Based on the transcript, extract all calendar scheduling tasks into a JSON list.
+        If no scheduling tasks are found, return an empty list: [].
+        """
+
+        try:
+            # We use the same JSON-configured model
+            response = await self.model.generate_content_async(
+                prompt,
+                generation_config=self.json_config
+            )
+            
+            # Clean and parse the JSON response
+            cleaned_response = response.text.strip().replace("```json", "").replace("```", "")
+            tasks = json.loads(cleaned_response)
+            
+            print(f"✅ AI extracted actionable tasks: {tasks}")
+            return tasks
+
+        except Exception as e:
+            print(f"❌ Error extracting actionable tasks with Gemini: {str(e)}")
+            return []
 # Example usage
 async def test_ai_service():
     """Test function for AI service"""

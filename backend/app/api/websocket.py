@@ -15,6 +15,8 @@ import struct
 import shutil
 from datetime import datetime
 import dateutil.parser
+import pytz
+
 
 router = APIRouter()
 
@@ -171,13 +173,19 @@ async def websocket_endpoint(
                 message = json.loads(data["text"])
                 message_type = message.get("type")
                 
-                print(f"📩 Message: {message_type}")
                 if message_type == "audio_config":
                     sample_rate = message.get("sampleRate", 48000)
                     is_float32 = message.get("isFloat32", False)
-                    user_timezone = message.get("timezone", "UTC") # Capture the timezone here
-                    print(f"🎛️ Audio config: {sample_rate}Hz, {'Float32' if is_float32 else 'Int16'}")
-                    print(f"🌍 User timezone set to: {user_timezone}")
+                    
+                    # This is the new, robust logic:
+                    new_timezone = message.get("timezone")
+                    # Only update the timezone if it's currently the default ("UTC")
+                    # and the new one is not empty.
+                    if new_timezone and user_timezone == "UTC":
+                        user_timezone = new_timezone
+                        print(f"🌍 User timezone LOCKED to: {user_timezone}")
+                    
+                    print(f"🎛️ Audio config received: {sample_rate}Hz, {'Float32' if is_float32 else 'Int16'}")
                     continue
 
                 if message_type == "start_recording":
@@ -242,19 +250,27 @@ async def websocket_endpoint(
                             if task.get("type") == "CREATE_CALENDAR_EVENT":
                                 print(f"📅 Found a calendar event task: {task.get('summary')}")
                                 
-                                # Authenticate calendar service (it handles its own token)
                                 if calendar_service.authenticate():
                                     try:
-                                        # Parse the ISO formatted string from the AI
-                                        start_time = dateutil.parser.isoparse(task.get("start_time"))
+                                        # --- START OF MODIFICATION ---
+                                        # 1. Parse the naive datetime string from the AI
+                                        naive_start_time = dateutil.parser.isoparse(task.get("start_time"))
                                         
+                                        # 2. Get the timezone object for the user's timezone
+                                        local_tz = pytz.timezone(user_timezone)
+                                        
+                                        # 3. Localize the naive datetime, making it timezone-aware
+                                        aware_start_time = local_tz.localize(naive_start_time)
+                                        
+                                        print(f"🌍 Correctly interpreted start time: {aware_start_time.isoformat()}")
+
                                         event_result = await calendar_service.create_event(
-                                        summary=task.get("summary"),
-                                        description=task.get("description", "Event scheduled by Samwaad AI."),
-                                        start_time=start_time,
-                                        duration_minutes=int(task.get("duration_minutes", 30)),
-                                        attendees=task.get("attendees", []),
-                                        timezone=user_timezone
+                                            summary=task.get("summary"),
+                                            description=task.get("description", "Event scheduled by Samwaad AI."),
+                                            start_time=aware_start_time, # 4. Use the new aware datetime object
+                                            duration_minutes=int(task.get("duration_minutes", 30)),
+                                            attendees=task.get("attendees", []),
+                                            timezone=user_timezone
                                         )
 
                                         if event_result:

@@ -52,8 +52,7 @@ class AIService:
                 'sentiment': 'NEUTRAL'
             }
 
-        prompt = f"""Analyze the following meeting transcript and provide a concise summary, a list of action items, and a list of key decisions.
-        The overall sentiment of the meeting should be categorized as POSITIVE, NEGATIVE, or NEUTRAL.
+        prompt = f"""Analyze the following meeting transcript.
 
         Transcript:
         ---
@@ -62,7 +61,7 @@ class AIService:
 
         Format your response as a JSON object with the following keys: "summary", "action_items", "key_decisions", "sentiment".
         - "summary": A brief paragraph summarizing the meeting.
-        - "action_items": A list of strings, where each string is a clear action item.
+        - "action_items": A list of JSON objects, where each object has a "task" key (the action) and an optional "person" key (who is assigned). For example: [{{"task": "Send the report", "person": "Sarah"}}].
         - "key_decisions": A list of strings, where each string is a key decision made.
         - "sentiment": A single word: POSITIVE, NEGATIVE, or NEUTRAL.
         """

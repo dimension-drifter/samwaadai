@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     GOOGLE_CREDENTIALS_PATH: str = "credentials.json"
     GOOGLE_TOKEN_PATH: str = "token.json"
     
+    APP_NAME: str = "Samwaad AI"
+    VERSION: str = "1.0.0"
+    DEBUG: bool = True
     # Server Configuration
     HOST: str = "0.0.0.0"
     PORT: int = 8000

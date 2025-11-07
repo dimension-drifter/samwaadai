@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import calls, tasks, websocket, auth
+from app.api import calls, tasks, websocket, auth, calendar
 from app.database import init_db
 from app.config import settings
 
@@ -23,6 +23,7 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(calls.router, prefix="/api/calls", tags=["Calls"])
 app.include_router(tasks.router, prefix="/api/tasks", tags=["Tasks"])
+app.include_router(calendar.router, prefix="/api/calendar", tags=["Calendar"])
 app.include_router(websocket.router, prefix="/ws", tags=["WebSocket"])
 
 @app.on_event("startup")

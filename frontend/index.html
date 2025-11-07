@@ -3,20 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Samwaad AI - Call Tracker</title>
+    <title>Reports - Samwaad AI</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>🎙️ Samwaad AI - Call Tracker</h1>
-            <p>AI-powered call transcription and insights</p>
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <span class="logo-icon">🎙️</span>
+                <span class="logo-text">Samwaad AI</span>
+            </div>
+            <div class="enterprise-badge">
+                <span class="star-icon">⭐</span>
+                <span>Enterprise</span>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item">
+                <span class="nav-icon">👤</span>
+                <span class="nav-text">Add People</span>
+            </a>
+            <a href="#" class="nav-item">
+                <span class="nav-icon">🔍</span>
+                <span class="nav-text">Search Copilot</span>
+            </a>
+            <a href="#" class="nav-item active">
+                <span class="nav-icon">📄</span>
+                <span class="nav-text">Reports</span>
+            </a>
+            <a href="#" class="nav-item">
+                <span class="nav-icon">📁</span>
+                <span class="nav-text">Folders</span>
+                <span class="nav-action">+</span>
+            </a>
+            <a href="calendar.html" class="nav-item">
+                <span class="nav-icon">📅</span>
+                <span class="nav-text">Calendar</span>
+            </a>
+            <a href="#" class="nav-item">
+                <span class="nav-icon">✨</span>
+                <span class="nav-text">For You</span>
+            </a>
+            <a href="#" class="nav-item">
+                <span class="nav-icon">�</span>
+                <span class="nav-text">Coaching</span>
+            </a>
+            <a href="#" class="nav-item">
+                <span class="nav-icon">💡</span>
+                <span class="nav-text">Recommendations</span>
+            </a>
+            <a href="#" class="nav-item">
+                <span class="nav-icon">📺</span>
+                <span class="nav-text">Add to live meeting</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="scheduler-section">
+                <div class="scheduler-header">
+                    <span>Smart Scheduler Link</span>
+                    <span class="info-icon">ⓘ</span>
+                </div>
+                <div class="scheduler-actions">
+                    <button class="copy-link-btn">
+                        <span class="link-icon">🔗</span>
+                        Copy link
+                    </button>
+                    <button class="manage-btn">Manage</button>
+                </div>
+            </div>
+            <div class="user-profile">
+                <div class="user-avatar">KP</div>
+                <span class="user-name">Khush Paliwal</span>
+                <span class="nav-arrow">›</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-wrapper">
+        <!-- Header -->
+        <header class="top-header">
+            <div class="header-left">
+                <button class="back-btn">‹</button>
+                <h1 class="page-title">Reports</h1>
+            </div>
+            <div class="header-center">
+                <div class="search-container">
+                    <span class="search-icon">🌐</span>
+                    <input type="text" placeholder="Ask Search Copilot anything..." class="search-input">
+                    <button class="search-submit">➤</button>
+                </div>
+            </div>
+            <div class="header-right">
+                <span class="refresh-time">🔄 Last refreshed at 2:08 AM</span>
+                <button class="upload-btn">
+                    <span class="upload-icon">⬆</span>
+                    Upload
+                </button>
+            </div>
         </header>
 
-        <main>
+        <!-- Main Content Area -->
+        <main class="main-content">
             <!-- Recording Section -->
             <section class="recording-section">
-                <h2>📞 Record a Call</h2>
+                <div class="recording-header">
+                    <h2>📞 Record a Call</h2>
+                </div>
                 <div class="recording-controls">
                     <button id="recordBtn" class="btn btn-primary btn-lg">
                         🔴 Start Recording
@@ -31,36 +127,83 @@
                 <div id="transcriptionResults" class="transcription-results" style="display: none;"></div>
             </section>
 
-            <!-- Recent Calls Section -->
-            <section class="calls-section">
-                <div class="section-header">
-                    <h2>📋 Recent Calls</h2>
-                    <button id="refreshBtn" class="btn btn-secondary">🔄 Refresh</button>
+            <!-- Tabs -->
+            <div class="tabs-container">
+                <div class="tabs">
+                    <button class="tab active">My reports</button>
+                    <button class="tab">Incomplete</button>
                 </div>
-                
+            </div>
+
+            <!-- Filters Bar -->
+            <div class="filters-bar">
+                <div class="filter-search">
+                    <span class="filter-icon">🔍</span>
+                    <input type="text" placeholder="Filter by report title..." class="filter-input">
+                </div>
+                <div class="filter-group">
+                    <button class="filter-btn">
+                        <span class="calendar-icon">📅</span>
+                        Anytime
+                        <span class="dropdown-icon">⌄</span>
+                    </button>
+                    <button class="filter-btn">
+                        Type
+                        <span class="dropdown-icon">⌄</span>
+                    </button>
+                    <button class="filter-btn">
+                        Source
+                        <span class="dropdown-icon">⌄</span>
+                    </button>
+                    <button class="filter-btn">
+                        Folder
+                        <span class="dropdown-icon">⌄</span>
+                    </button>
+                    <button id="refreshBtn" class="filter-btn icon-only">
+                        ⚙
+                    </button>
+                </div>
+            </div>
+
+            <!-- Calls Table -->
+            <section class="calls-section">
                 <table class="calls-table">
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Date & Time</th>
-                            <th>Duration</th>
-                            <th>Status</th>
-                            <th>Sentiment</th>
-                            <th>Actions</th>
+                            <th class="col-source">Source</th>
+                            <th class="col-report">Report</th>
+                            <th class="col-datetime">
+                                Date & Time
+                                <span class="sort-icon">↓</span>
+                            </th>
+                            <th class="col-score">Read Score</th>
+                            <th class="col-folders">Folders</th>
+                            <th class="col-owner">Owner</th>
                         </tr>
                     </thead>
                     <tbody id="callsTableBody">
                         <tr>
-                            <td colspan="6" style="text-align: center;">Loading...</td>
+                            <td colspan="6" style="text-align: center; padding: 40px;">Loading...</td>
                         </tr>
                     </tbody>
                 </table>
             </section>
-        </main>
 
-        <footer>
-            <p>&copy; 2024 Samwaad AI. Powered by Google Cloud Speech & Gemini AI.</p>
-        </footer>
+            <!-- Getting Started Banner -->
+            <div class="getting-started-banner">
+                <span class="banner-icon">👋</span>
+                <span class="banner-text">Getting Started (3/4)</span>
+            </div>
+
+            <!-- Footer -->
+            <footer class="bottom-footer">
+                <a href="#" class="footer-link">
+                    <span class="footer-icon">🎙️</span>
+                    Visit samwaad.ai
+                    <span class="external-icon">↗</span>
+                </a>
+            </footer>
+        </main>
     </div>
 
     <!-- Scripts - LOAD IN THIS ORDER -->

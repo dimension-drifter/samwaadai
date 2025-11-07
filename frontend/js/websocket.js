@@ -110,7 +110,12 @@ class WebSocketManager {
                     this.showProcessingUI();
                 } else if (message.type === 'task_executed') {
                     console.log('✅ Task Executed:', message);
-                    alert(`✅ AI Action Complete: ${message.summary}`);
+                    alert(`✅ AI Action Complete: ${message.summary}\n\nCheck the Calendar page to see the new event!`);
+                    
+                    // Trigger custom event for other pages to listen
+                    window.dispatchEvent(new CustomEvent('calendarEventCreated', { 
+                        detail: message.details 
+                    }));
                 } else if (message.type === 'call_completed') {
                     console.log('✅ Transcription completed!');
                     this.handleTranscriptionComplete(message);

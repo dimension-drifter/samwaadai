@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendar - Samwaad AI</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <span class="logo-icon">🎙️</span>
+                <span class="logo-text">Samwaad AI</span>
+            </div>
+            <div class="enterprise-badge">
+                <span class="star-icon">⭐</span>
+                <span>Enterprise</span>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item">
+                <span class="nav-icon">👤</span>
+                <span class="nav-text">Add People</span>
+            </a>
+            <a href="#" class="nav-item">
+                <span class="nav-icon">🔍</span>
+                <span class="nav-text">Search Copilot</span>
+            </a>
+            <a href="index.html" class="nav-item">
+                <span class="nav-icon">📄</span>
+                <span class="nav-text">Reports</span>
+            </a>
+            <a href="#" class="nav-item">
+                <span class="nav-icon">📁</span>
+                <span class="nav-text">Folders</span>
+                <span class="nav-action">+</span>
+            </a>
+            <a href="calendar.html" class="nav-item active">
+                <span class="nav-icon">📅</span>
+                <span class="nav-text">Calendar</span>
+            </a>
+            <a href="#" class="nav-item">
+                <span class="nav-icon">✨</span>
+                <span class="nav-text">For You</span>
+            </a>
+            <a href="#" class="nav-item">
+                <span class="nav-icon">🎓</span>
+                <span class="nav-text">Coaching</span>
+            </a>
+            <a href="#" class="nav-item">
+                <span class="nav-icon">💡</span>
+                <span class="nav-text">Recommendations</span>
+            </a>
+            <a href="#" class="nav-item">
+                <span class="nav-icon">📺</span>
+                <span class="nav-text">Add to live meeting</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="scheduler-section">
+                <div class="scheduler-header">
+                    <span>Smart Scheduler Link</span>
+                    <span class="info-icon">ⓘ</span>
+                </div>
+                <div class="scheduler-actions">
+                    <button class="copy-link-btn">
+                        <span class="link-icon">🔗</span>
+                        Copy link
+                    </button>
+                    <button class="manage-btn">Manage</button>
+                </div>
+            </div>
+            <div class="user-profile">
+                <div class="user-avatar">KP</div>
+                <span class="user-name">Khush Paliwal</span>
+                <span class="nav-arrow">›</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-wrapper">
+        <!-- Header -->
+        <header class="top-header">
+            <div class="header-left">
+                <button class="back-btn" onclick="history.back()">‹</button>
+                <h1 class="page-title">Calendar</h1>
+            </div>
+            <div class="header-center">
+                <div class="search-container">
+                    <span class="search-icon">🌐</span>
+                    <input type="text" placeholder="Ask Search Copilot anything..." class="search-input">
+                    <button class="search-submit">➤</button>
+                </div>
+            </div>
+            <div class="header-right">
+                <span class="refresh-time" id="calendarRefreshTime">🔄 Loading...</span>
+                <button class="upload-btn" style="display: none;">
+                    <span class="upload-icon">⬆</span>
+                    Upload
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Tabs -->
+            <div class="tabs-container calendar-tabs">
+                <div class="tabs">
+                    <button class="tab active" data-tab="upcoming">Upcoming</button>
+                    <button class="tab" data-tab="scheduling">Scheduling</button>
+                </div>
+                <div class="calendar-actions">
+                    <button class="calendar-action-btn" title="Google Calendar">
+                        <span style="font-size: 18px;">📅</span>
+                    </button>
+                    <button class="calendar-action-btn" title="Add Meeting">
+                        <span style="font-size: 18px;">➕</span>
+                    </button>
+                    <button class="calendar-action-btn" title="Add Read to live meeting">
+                        <span style="font-size: 14px;">⏺</span>
+                        <span style="font-size: 12px;">Add Read to a live meeting</span>
+                    </button>
+                    <button class="scheduling-link-btn">
+                        <span class="link-icon">🔗</span>
+                        Scheduling Link
+                    </button>
+                </div>
+            </div>
+
+            <!-- Upcoming Tab Content -->
+            <div id="upcomingTab" class="tab-content active">
+                <!-- Filters -->
+                <div class="calendar-filters">
+                    <button class="calendar-filter-btn">
+                        <span class="filter-icon">☰</span>
+                        Filter
+                        <span class="dropdown-icon">⌄</span>
+                    </button>
+                    <button class="calendar-filter-btn">
+                        Has video conferencing
+                        <span class="dropdown-icon">⌄</span>
+                    </button>
+                    <div class="calendar-pagination">
+                        <button class="pagination-btn">⚙</button>
+                        <span class="pagination-text" id="paginationText">0-0 of 0</span>
+                        <button class="pagination-btn">‹</button>
+                        <button class="pagination-btn">›</button>
+                    </div>
+                </div>
+
+                <!-- Events Table -->
+                <div class="calendar-table-container">
+                    <table class="calendar-events-table">
+                        <thead>
+                            <tr>
+                                <th class="col-meeting">
+                                    Meeting
+                                    <span class="sort-icon">⇅</span>
+                                </th>
+                                <th class="col-datetime">
+                                    Date & Time
+                                    <span class="sort-icon active">↑</span>
+                                </th>
+                                <th class="col-addread">
+                                    Add Read?
+                                    <span class="info-icon">ⓘ</span>
+                                    <span class="sort-icon">⇅</span>
+                                </th>
+                                <th class="col-flexible">
+                                    Flexible?
+                                    <span class="info-icon">ⓘ</span>
+                                    <span class="sort-icon">⇅</span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="calendarEventsBody">
+                            <tr>
+                                <td colspan="4" class="empty-state">
+                                    <div class="empty-state-content">
+                                        <span class="empty-icon">📅</span>
+                                        <h3>No meetings</h3>
+                                        <p>There are no upcoming meetings to display.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Bottom Pagination -->
+                <div class="calendar-bottom-pagination">
+                    <span class="pagination-text">0-0 of 0</span>
+                    <div>
+                        <button class="pagination-btn">‹</button>
+                        <button class="pagination-btn">›</button>
+                    </div>
+                    <div class="show-dropdown">
+                        <span>Show</span>
+                        <select class="show-select">
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scheduling Tab Content -->
+            <div id="schedulingTab" class="tab-content" style="display: none;">
+                <div class="scheduling-content">
+                    <!-- Default Scheduling Links -->
+                    <div class="scheduling-section">
+                        <h2 class="scheduling-title">Default scheduling links</h2>
+                        <p class="scheduling-description">
+                            Allows others to schedule a meeting with you. These will be provided as meeting duration options when someone
+                            visits your general scheduling link 
+                            <a href="#" class="scheduling-link-inline">(cal.read.ai/khush-h42yi)</a>.
+                        </p>
+                        <p class="scheduling-meta">4 links (4 active)</p>
+
+                        <div class="scheduling-links-grid">
+                            <div class="scheduling-link-card">
+                                <div class="link-card-header">
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                    <div class="link-card-info">
+                                        <h3>15-minute Meeting</h3>
+                                        <p class="link-duration">⏱ 15 minutes</p>
+                                        <a href="#" class="link-url">cal.read.ai/khush-h42yi/15-min</a>
+                                    </div>
+                                </div>
+                                <button class="link-copy-btn" title="Copy link">
+                                    <span>🔗</span>
+                                </button>
+                            </div>
+
+                            <div class="scheduling-link-card">
+                                <div class="link-card-header">
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                    <div class="link-card-info">
+                                        <h3>30-minute Meeting</h3>
+                                        <p class="link-duration">⏱ 30 minutes</p>
+                                        <a href="#" class="link-url">cal.read.ai/khush-h42yi/30-min</a>
+                                    </div>
+                                </div>
+                                <button class="link-copy-btn" title="Copy link">
+                                    <span>🔗</span>
+                                </button>
+                            </div>
+
+                            <div class="scheduling-link-card">
+                                <div class="link-card-header">
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                    <div class="link-card-info">
+                                        <h3>60-minute Meeting</h3>
+                                        <p class="link-duration">⏱ 60 minutes</p>
+                                        <a href="#" class="link-url">cal.read.ai/khush-h42yi/60-min</a>
+                                    </div>
+                                </div>
+                                <button class="link-copy-btn" title="Copy link">
+                                    <span>🔗</span>
+                                </button>
+                            </div>
+
+                            <div class="scheduling-link-card">
+                                <div class="link-card-header">
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                    <div class="link-card-info">
+                                        <h3>90-minute Meeting</h3>
+                                        <p class="link-duration">⏱ 90 minutes</p>
+                                        <a href="#" class="link-url">cal.read.ai/khush-h42yi/90-min</a>
+                                    </div>
+                                </div>
+                                <button class="link-copy-btn" title="Copy link">
+                                    <span>🔗</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Custom Scheduling Links -->
+                    <div class="scheduling-section">
+                        <h2 class="scheduling-title">Custom scheduling links</h2>
+                        <p class="scheduling-description">
+                            Send one of the links below to allow others to schedule a meeting based on specific constraints. These links do
+                            not expire.
+                        </p>
+                        <p class="scheduling-meta">
+                            0 links
+                            <button class="new-custom-link-btn">New custom link</button>
+                        </p>
+
+                        <div class="empty-custom-links">
+                            <span class="empty-icon">🔗</span>
+                            <h3>No custom links</h3>
+                            <p>
+                                Create a new custom scheduling link to choose specific<br>
+                                constraints like duration, video conferencing platform,<br>
+                                and more.
+                            </p>
+                            <button class="btn btn-primary new-custom-link-btn-large">New custom link</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Getting Started Banner -->
+            <div class="getting-started-banner">
+                <span class="banner-icon">👋</span>
+                <span class="banner-text">Getting Started (4/4)</span>
+            </div>
+
+            <!-- Footer -->
+            <footer class="bottom-footer">
+                <a href="#" class="footer-link">
+                    <span class="footer-icon">🎙️</span>
+                    Visit samwaad.ai
+                    <span class="external-icon">↗</span>
+                </a>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/api.js"></script>
+    <script src="js/websocket.js"></script>
+    <script src="js/calendar.js"></script>
+</body>
+</html>

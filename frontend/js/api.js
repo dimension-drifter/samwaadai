@@ -119,6 +119,34 @@ class APIService {
             return false;
         }
     }
+
+    /**
+     * Get upcoming calendar events
+     */
+    async getCalendarEvents(maxResults = 50) {
+        return await this.request(`/api/calendar/events?max_results=${maxResults}`);
+    }
+
+    /**
+     * Delete a calendar event
+     */
+    async deleteCalendarEvent(eventId) {
+        return await this.request(`/api/calendar/events/${eventId}`, {
+            method: 'DELETE'
+        });
+    }
+
+    /**
+     * Check calendar service health
+     */
+    async checkCalendarHealth() {
+        try {
+            return await this.request('/api/calendar/health');
+        } catch (error) {
+            console.warn('Calendar health check failed:', error);
+            return { authenticated: false, error: error.message };
+        }
+    }
 }
 
 // Create global API instance

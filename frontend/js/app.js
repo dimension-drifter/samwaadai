@@ -165,22 +165,56 @@ function displayRecentCalls(calls) {
     if (!tableBody) return;
     
     if (calls.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No calls yet. Start recording!</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: #86868b;">No calls yet. Start recording!</td></tr>';
         return;
     }
     
-    tableBody.innerHTML = calls.map(call => `
-        <tr>
-            <td>${call.id}</td>
-            <td>${new Date(call.start_time).toLocaleString()}</td>
-            <td>${call.duration_seconds ? Math.floor(call.duration_seconds / 60) + ':' + (call.duration_seconds % 60).toString().padStart(2, '0') : 'N/A'}</td>
-            <td><span class="status-badge ${call.status}">${call.status}</span></td>
-            <td>${call.sentiment || 'N/A'}</td>
-            <td>
-                <button class="btn btn-sm" onclick="viewCallDetails(${call.id})">View</button>
-            </td>
-        </tr>
-    `).join('');
+    tableBody.innerHTML = calls.map(call => {
+        const date = new Date(call.start_time);
+        const dateStr = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+        const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        
+        // Calculate read score (mock data - you can replace with actual logic)
+        const readScore = call.sentiment === 'POSITIVE' ? 87 : call.sentiment === 'NEUTRAL' ? 75 : 65;
+        
+        return `
+            <tr>
+                <td class="col-source">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 20px;">🎙️</span>
+                    </div>
+                </td>
+                <td class="col-report">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <strong>Call #${call.id}</strong>
+                        ${call.contact_name && call.contact_name !== 'Live Recording' ? `
+                            <span style="color: #86868b;">- ${call.contact_name}</span>
+                        ` : ''}
+                    </div>
+                </td>
+                <td class="col-datetime">
+                    <div>
+                        <div style="font-weight: 500;">${dateStr}</div>
+                        <div style="color: #86868b; font-size: 13px;">${timeStr}</div>
+                    </div>
+                </td>
+                <td class="col-score">
+                    <div class="read-score">
+                        <span class="score-dot" style="background: ${readScore > 80 ? '#34c759' : readScore > 60 ? '#ff9500' : '#ff3b30'};"></span>
+                        <span style="font-weight: 600;">${readScore}</span>
+                    </div>
+                </td>
+                <td class="col-folders">
+                    <span style="color: #86868b;">—</span>
+                </td>
+                <td class="col-owner">
+                    <div class="user-avatar" style="width: 28px; height: 28px; font-size: 11px; background: #5a4fb7;">
+                        ${call.contact_name ? call.contact_name.substring(0, 2).toUpperCase() : 'AI'}
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
 }
 
 function viewCallDetails(callId) {

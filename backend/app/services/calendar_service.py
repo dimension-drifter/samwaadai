@@ -17,6 +17,9 @@ from app.config import settings
 # Scopes required for Google Calendar
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 
+# Define the project's base directory (the 'backend' folder)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 class CalendarService:
     """Google Calendar Automation Service"""
     
@@ -28,8 +31,9 @@ class CalendarService:
             credentials_path: Path to OAuth2 credentials JSON file
             token_path: Path to store user tokens
         """
-        self.credentials_path = credentials_path or os.getenv('GOOGLE_CREDENTIALS_PATH', 'credentials.json')
-        self.token_path = token_path or os.getenv('GOOGLE_TOKEN_PATH', 'token.json')
+        # Use absolute paths to avoid ambiguity
+        self.credentials_path = credentials_path or os.path.join(BASE_DIR, settings.GOOGLE_CREDENTIALS_PATH)
+        self.token_path = token_path or os.path.join(BASE_DIR, settings.GOOGLE_TOKEN_PATH)
         self.service = None
         self.creds = None
     

@@ -1,37 +1,37 @@
 from pydantic_settings import BaseSettings
 from typing import Optional
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
 
 class Settings(BaseSettings):
-    """Application settings"""
-    
-    # Application
-    APP_NAME: str = "Call Tracker AI"
-    DEBUG: bool = os.getenv("DEBUG", "False") == "True"
-    HOST: str = os.getenv("HOST", "0.0.0.0")
-    PORT: int = int(os.getenv("PORT", 8000))
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "change-this-secret-key")
+    """Application settings loaded from environment variables"""
     
     # Database
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./call_tracker.db")
+    DATABASE_URL: str = "sqlite:///./call_tracker.db"
     
     # API Keys
-    ASSEMBLYAI_API_KEY: str = os.getenv("ASSEMBLYAI_API_KEY", "")
-    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
-    SENDGRID_API_KEY: str = os.getenv("SENDGRID_API_KEY", "")
+    GEMINI_API_KEY: Optional[str] = None
+    ASSEMBLYAI_API_KEY: Optional[str] = None
+    SENDGRID_API_KEY: Optional[str] = None
     
-    # Google OAuth
-    GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
-    GOOGLE_CLIENT_SECRET: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
+    # Email Configuration
+    SENDER_EMAIL: str = "pkmpunit2003@gmail.com"
     
-    # Redis
-    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    # Google Calendar Configuration
+    GOOGLE_CREDENTIALS_PATH: str = "credentials.json"
+    GOOGLE_TOKEN_PATH: str = "token.json"
+    
+    # Server Configuration
+    HOST: str = "0.0.0.0"
+    PORT: int = 8000
+    
+    # Security
+    SECRET_KEY: str = "your-secret-key-change-in-production"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
     class Config:
         env_file = ".env"
+        case_sensitive = False
+        # Allow extra fields from .env (remove strict validation)
+        extra = "ignore"  # Changed from "forbid" to "ignore"
 
-# Global settings instance
 settings = Settings()

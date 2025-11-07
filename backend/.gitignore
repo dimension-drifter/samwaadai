@@ -8,4 +8,5 @@ app/schemas/__pycache__/
 crm.db
 app/services/__pycache__/
 credentials.json
+google-credentials.json
 token.json

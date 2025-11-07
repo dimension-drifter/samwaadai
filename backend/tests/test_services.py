@@ -7,6 +7,10 @@ import asyncio
 import sys
 import os
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
+
+# Load the .env file
+load_dotenv()
 
 # Add parent directory to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))

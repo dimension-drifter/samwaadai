@@ -1,219 +1,194 @@
 """
-Speech-to-Text Service using AssemblyAI
-Handles real-time audio transcription
+Speech-to-Text Service using Google Cloud Speech-to-Text
+Handles batch audio transcription with speaker diarization
 """
-
-import assemblyai as aai
-from typing import Optional, Callable, Dict, List
-import asyncio
+from google.cloud import speech
+from typing import Dict, List
 from app.config import settings
+import os
+import wave
 
 class STTService:
-    """AssemblyAI Speech-to-Text Service"""
+    """Google Cloud Speech-to-Text Service with diarization"""
     
     def __init__(self):
-        """Initialize AssemblyAI with API key"""
-        if not settings.ASSEMBLYAI_API_KEY:
-            raise ValueError("ASSEMBLYAI_API_KEY not set in environment")
+        """Initialize Google Cloud Speech client"""
+        if settings.GOOGLE_APPLICATION_CREDENTIALS:
+            os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = settings.GOOGLE_APPLICATION_CREDENTIALS
         
-        aai.settings.api_key = settings.ASSEMBLYAI_API_KEY
-        self.transcriber: Optional[aai.RealtimeTranscriber] = None
-        self.transcript_queue = asyncio.Queue()
-        self.is_connected = False
-        
-    def on_open(self, session_opened: aai.RealtimeSessionOpened):
-        """Callback when connection opens"""
-        print(f"✅ AssemblyAI connection opened - Session ID: {session_opened.session_id}")
-        self.is_connected = True
+        self.client = speech.SpeechClient()
     
-    def on_data(self, transcript: aai.RealtimeTranscript):
-        """Callback when transcript data is received"""
-        if not transcript.text:
-            return
-        
-        # Only process final transcripts
-        if isinstance(transcript, aai.RealtimeFinalTranscript):
-            transcript_data = {
-                'text': transcript.text,
-                'confidence': transcript.confidence,
-                'created': transcript.created,
-                'audio_start': transcript.audio_start,
-                'audio_end': transcript.audio_end,
-                'words': [
-                    {
-                        'text': word.text,
-                        'start': word.start,
-                        'end': word.end,
-                        'confidence': word.confidence
-                    }
-                    for word in transcript.words
-                ] if transcript.words else []
-            }
-            
-            # Put in queue for async retrieval
-            asyncio.create_task(self.transcript_queue.put(transcript_data))
-            print(f"📝 Transcript: {transcript.text}")
-        
-        # Partial transcripts (optional - for live display)
-        elif isinstance(transcript, aai.RealtimePartialTranscript):
-            print(f"⏳ Partial: {transcript.text}")
-    
-    def on_error(self, error: aai.RealtimeError):
-        """Callback when error occurs"""
-        print(f"❌ AssemblyAI Error: {error}")
-        self.is_connected = False
-    
-    def on_close(self):
-        """Callback when connection closes"""
-        print("👋 AssemblyAI connection closed")
-        self.is_connected = False
-    
-    async def start_transcription(self):
-        """Start real-time transcription session"""
-        try:
-            self.transcriber = aai.RealtimeTranscriber(
-                sample_rate=16000,
-                on_data=self.on_data,
-                on_error=self.on_error,
-                on_open=self.on_open,
-                on_close=self.on_close,
-                # Optional configuration
-                encoding=aai.AudioEncoding.pcm_s16le,
-                # Enable word-level timestamps
-                word_boost=["action", "task", "follow-up", "deadline", "meeting"],
-                # Disable automatic punctuation if needed
-                # disable_automatic_punctuation=False
-            )
-            
-            # Connect to AssemblyAI
-            self.transcriber.connect()
-            
-            # Wait for connection
-            await asyncio.sleep(1)
-            
-            return True
-        
-        except Exception as e:
-            print(f"❌ Failed to start transcription: {str(e)}")
-            return False
-    
-    async def stream_audio(self, audio_data: bytes):
+    async def transcribe_audio_file(self, audio_path: str) -> Dict:
         """
-        Stream audio data to AssemblyAI
+        Transcribe a pre-recorded audio file with speaker diarization.
         
         Args:
-            audio_data: Raw audio bytes (PCM 16-bit, 16kHz, mono)
-        """
-        if not self.transcriber or not self.is_connected:
-            raise Exception("Transcriber not connected. Call start_transcription() first.")
-        
-        try:
-            self.transcriber.stream(audio_data)
-        except Exception as e:
-            print(f"❌ Error streaming audio: {str(e)}")
-            raise
-    
-    async def get_transcript(self) -> Optional[Dict]:
-        """
-        Get next transcript from queue (non-blocking)
-        
-        Returns:
-            Transcript dict or None if queue is empty
-        """
-        try:
-            transcript = await asyncio.wait_for(
-                self.transcript_queue.get(), 
-                timeout=0.1
-            )
-            return transcript
-        except asyncio.TimeoutError:
-            return None
-    
-    async def close(self):
-        """Close the transcription session"""
-        if self.transcriber:
-            self.transcriber.close()
-            self.is_connected = False
-            print("✅ Transcription session closed")
-    
-    # Batch transcription (for recorded audio files)
-    async def transcribe_audio_file(self, audio_url: str) -> Dict:
-        """
-        Transcribe a pre-recorded audio file
-        
-        Args:
-            audio_url: URL or local path to audio file
+            audio_path: Local path to the audio file (must be 16kHz WAV).
             
         Returns:
-            Full transcription with timestamps
+            Full transcription result with speaker labels as a dictionary.
         """
         try:
-            config = aai.TranscriptionConfig(
-                speaker_labels=True,  # Enable speaker diarization
-                auto_chapters=True,   # Auto-generate chapters
-                sentiment_analysis=True  # Sentiment analysis
+            # Get WAV file info
+            with wave.open(audio_path, 'rb') as wf:
+                sample_rate = wf.getframerate()
+                channels = wf.getnchannels()
+                sample_width = wf.getsampwidth()
+                frames = wf.getnframes()
+                duration = frames / sample_rate
+            
+            print(f"🎤 Starting Google Cloud Speech transcription")
+            print(f"   - File: {audio_path}")
+            print(f"   - Sample rate: {sample_rate}Hz")
+            print(f"   - Channels: {channels}")
+            print(f"   - Duration: {duration:.2f}s")
+            
+            # Read audio file
+            with open(audio_path, 'rb') as audio_file:
+                audio_content = audio_file.read()
+            
+            print(f"   - Audio size: {len(audio_content)} bytes")
+            
+            audio = speech.RecognitionAudio(content=audio_content)
+            
+            # Configure diarization
+            diarization_config = speech.SpeakerDiarizationConfig(
+                enable_speaker_diarization=True,
+                min_speaker_count=1,
+                max_speaker_count=6,
             )
             
-            transcriber = aai.Transcriber()
-            transcript = transcriber.transcribe(audio_url, config=config)
+            # Configure recognition - MUST match the actual WAV file format
+            config = speech.RecognitionConfig(
+                encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+                sample_rate_hertz=sample_rate,  # Use actual sample rate from WAV
+                language_code="en-US",
+                enable_automatic_punctuation=True,
+                enable_word_time_offsets=True,
+                diarization_config=diarization_config,
+                model="latest_long",
+                use_enhanced=True,
+                audio_channel_count=channels,
+            )
             
-            if transcript.status == aai.TranscriptStatus.error:
-                raise Exception(f"Transcription failed: {transcript.error}")
+            print("📤 Sending to Google Cloud Speech API...")
+            print("   (This may take 5-15 seconds...)")
             
-            return {
-                'id': transcript.id,
-                'text': transcript.text,
-                'confidence': transcript.confidence,
-                'words': [
-                    {
-                        'text': word.text,
-                        'start': word.start,
-                        'end': word.end,
-                        'confidence': word.confidence,
-                        'speaker': getattr(word, 'speaker', None)
-                    }
-                    for word in transcript.words
-                ],
-                'utterances': [
-                    {
-                        'text': utterance.text,
-                        'start': utterance.start,
-                        'end': utterance.end,
-                        'confidence': utterance.confidence,
-                        'speaker': utterance.speaker
-                    }
-                    for utterance in (transcript.utterances or [])
-                ] if hasattr(transcript, 'utterances') else [],
-                'sentiment_analysis': transcript.sentiment_analysis_results if hasattr(transcript, 'sentiment_analysis_results') else None
+            # Perform transcription
+            response = self.client.recognize(config=config, audio=audio)
+            
+            print(f"📥 Response received!")
+            print(f"   - Results: {len(response.results)}")
+            
+            if not response.results:
+                print("❌ No transcription results returned")
+                print("   Troubleshooting:")
+                print("   1. Check if audio contains clear speech")
+                print("   2. Verify microphone is working")
+                print("   3. Ensure audio is loud enough")
+                print("   4. Try speaking for 3-5 seconds")
+                return {
+                    'id': 'google-cloud-speech',
+                    'text': '',
+                    'confidence': 0.0,
+                    'audio_duration': int(duration * 1000),
+                    'sentiment_analysis_results': [],
+                    'chapters': [],
+                    'utterances': []
+                }
+            
+            # Process results with diarization
+            full_transcript = []
+            utterances = []
+            words_info = []
+            
+            for i, result in enumerate(response.results):
+                alternative = result.alternatives[0]
+                print(f"   ✓ Result {i+1}: '{alternative.transcript}'")
+                print(f"     Confidence: {alternative.confidence:.1%}")
+                
+                # Get words with speaker tags
+                for word_info in alternative.words:
+                    word = word_info.word
+                    start_time = word_info.start_time.total_seconds()
+                    end_time = word_info.end_time.total_seconds()
+                    speaker_tag = word_info.speaker_tag if hasattr(word_info, 'speaker_tag') else 1
+                    
+                    words_info.append({
+                        'word': word,
+                        'start': start_time,
+                        'end': end_time,
+                        'speaker': speaker_tag
+                    })
+                
+                full_transcript.append(alternative.transcript)
+            
+            # Group words into utterances by speaker
+            if words_info:
+                current_speaker = words_info[0]['speaker']
+                current_text = []
+                current_start = words_info[0]['start']
+                
+                for i, word_data in enumerate(words_info):
+                    if word_data['speaker'] != current_speaker:
+                        # Save previous utterance
+                        utterances.append({
+                            'text': ' '.join(current_text),
+                            'start': current_start,
+                            'end': words_info[i - 1]['end'],
+                            'confidence': 0.9,
+                            'speaker': f"Speaker {current_speaker}"
+                        })
+                        
+                        # Start new utterance
+                        current_speaker = word_data['speaker']
+                        current_text = [word_data['word']]
+                        current_start = word_data['start']
+                    else:
+                        current_text.append(word_data['word'])
+                
+                # Add final utterance
+                if current_text:
+                    utterances.append({
+                        'text': ' '.join(current_text),
+                        'start': current_start,
+                        'end': words_info[-1]['end'],
+                        'confidence': 0.9,
+                        'speaker': f"Speaker {current_speaker}"
+                    })
+            
+            full_text = ' '.join(full_transcript)
+            
+            # Calculate audio duration
+            audio_duration = int(duration * 1000)
+            if words_info:
+                audio_duration = int(words_info[-1]['end'] * 1000)
+            
+            result = {
+                'id': 'google-cloud-speech',
+                'text': full_text,
+                'confidence': response.results[0].alternatives[0].confidence if response.results else 0.0,
+                'audio_duration': audio_duration,
+                'sentiment_analysis_results': [],
+                'chapters': [],
+                'utterances': utterances,
+                'words': words_info
             }
+            
+            unique_speakers = len(set([u['speaker'] for u in utterances])) if utterances else 0
+            
+            print(f"✅ Transcription SUCCESS!")
+            print(f"   📝 Text: '{full_text}'")
+            print(f"   📏 Length: {len(full_text)} characters")
+            print(f"   ⏱️  Duration: {audio_duration/1000:.2f}s")
+            print(f"   📊 Confidence: {result['confidence']:.1%}")
+            print(f"   💬 Utterances: {len(utterances)}")
+            print(f"   👥 Speakers: {unique_speakers}")
+            
+            return result
         
         except Exception as e:
-            print(f"❌ Batch transcription error: {str(e)}")
+            print(f"❌ Google Cloud Speech error: {str(e)}")
+            import traceback
+            traceback.print_exc()
             raise
-
-
-# Example usage
-async def test_stt_service():
-    """Test function for STT service"""
-    service = STTService()
-    
-    # Start transcription
-    await service.start_transcription()
-    
-    # Simulate streaming audio (in real scenario, this comes from WebSocket)
-    # For testing, you'd need actual audio bytes
-    
-    # Get transcripts
-    while True:
-        transcript = await service.get_transcript()
-        if transcript:
-            print(f"Got transcript: {transcript}")
-        await asyncio.sleep(0.1)
-    
-    # Close when done
-    await service.close()
-
-
-if __name__ == "__main__":
-    # Test the service
-    asyncio.run(test_stt_service())

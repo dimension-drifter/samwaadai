@@ -9,8 +9,11 @@ class Settings(BaseSettings):
     
     # API Keys
     GEMINI_API_KEY: Optional[str] = None
-    ASSEMBLYAI_API_KEY: Optional[str] = None
     SENDGRID_API_KEY: Optional[str] = None
+    
+    # Google Cloud Configuration
+    GOOGLE_APPLICATION_CREDENTIALS: Optional[str] = None  # Path to service account JSON
+    GOOGLE_CLOUD_PROJECT_ID: Optional[str] = None
     
     # Email Configuration
     SENDER_EMAIL: str = "pkmpunit2003@gmail.com"
@@ -34,7 +37,6 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = False
-        # Allow extra fields from .env (remove strict validation)
-        extra = "ignore"  # Changed from "forbid" to "ignore"
+        extra = "ignore"
 
 settings = Settings()

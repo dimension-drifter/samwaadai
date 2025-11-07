@@ -30,81 +30,61 @@ class AIService:
             "response_mime_type": "application/json"
         }
     
-    async def extract_meeting_insights(self, transcript: str) -> Dict:
+    async def extract_meeting_insights(self, transcript_data: dict) -> dict:
         """
-        Extract comprehensive insights from meeting transcript
+        Extracts summary, action items, and key decisions from a transcript object.
         
         Args:
-            transcript: Full meeting transcript text
-            
+            transcript_data: The full transcript object from AssemblyAI.
+        
         Returns:
-            Dict with action_items, decisions, follow_ups, sentiment, summary, etc.
+            A dictionary containing the extracted insights.
         """
         
-        prompt = f"""
-        Analyze this meeting transcript and extract the following information in JSON format:
+        # Use speaker-labeled utterances for better context
+        full_text = "\n".join([f"Speaker {u['speaker']}: {u['text']}" for u in transcript_data.get('utterances', [])])
         
-        1. **action_items**: List of action items with:
-           - task: Clear description of what needs to be done
-           - person: Who is responsible (if mentioned)
-           - deadline: When it's due (if mentioned, format as ISO date string)
-           - priority: "high", "medium", or "low"
-           
-        2. **key_decisions**: List of important decisions made during the meeting
-        
-        3. **follow_ups**: Things that need to be followed up on
-        
-        4. **participants**: List of people mentioned or involved
-        
-        5. **topics**: Main topics discussed
-        
-        6. **sentiment**: Overall sentiment - "positive", "neutral", "negative", or "mixed"
-        
-        7. **summary**: 2-3 sentence summary of the meeting
-        
-        8. **next_steps**: What should happen next
-        
+        if not full_text:
+            return {
+                'summary': 'No content to analyze.',
+                'action_items': [],
+                'key_decisions': [],
+                'sentiment': 'NEUTRAL'
+            }
+
+        prompt = f"""Analyze the following meeting transcript and provide a concise summary, a list of action items, and a list of key decisions.
+        The overall sentiment of the meeting should be categorized as POSITIVE, NEGATIVE, or NEUTRAL.
+
         Transcript:
-        {transcript}
-        
-        Return ONLY valid JSON with this structure:
-        {{
-            "action_items": [
-                {{
-                    "task": "string",
-                    "person": "string or null",
-                    "deadline": "ISO date string or null",
-                    "priority": "high|medium|low"
-                }}
-            ],
-            "key_decisions": ["string"],
-            "follow_ups": ["string"],
-            "participants": ["string"],
-            "topics": ["string"],
-            "sentiment": "positive|neutral|negative|mixed",
-            "summary": "string",
-            "next_steps": ["string"]
-        }}
+        ---
+        {full_text}
+        ---
+
+        Format your response as a JSON object with the following keys: "summary", "action_items", "key_decisions", "sentiment".
+        - "summary": A brief paragraph summarizing the meeting.
+        - "action_items": A list of strings, where each string is a clear action item.
+        - "key_decisions": A list of strings, where each string is a key decision made.
+        - "sentiment": A single word: POSITIVE, NEGATIVE, or NEUTRAL.
         """
         
         try:
-            response = self.model.generate_content(
-                prompt,
-                generation_config=self.json_config
-            )
+            response = await self.model.generate_content_async(prompt)
             
-            result = json.loads(response.text)
-            return result
-        
-        except json.JSONDecodeError as e:
-            print(f"❌ Failed to parse JSON from Gemini: {str(e)}")
-            print(f"Raw response: {response.text}")
-            # Return default structure
-            return self._default_insights()
-        
+            # Clean and parse the JSON response
+            cleaned_response = response.text.strip().replace("```json", "").replace("```", "")
+            insights = json.loads(cleaned_response)
+            
+            return insights
         except Exception as e:
-            print(f"❌ Error extracting insights: {str(e)}")
-            return self._default_insights()
+            print(f"❌ Error generating insights with Gemini: {str(e)}")
+            # Fallback in case of AI failure
+            return {
+                'summary': 'Failed to generate summary.',
+                'action_items': [],
+                'key_decisions': [],
+                'sentiment': 'UNKNOWN'
+            }
+
     
     async def analyze_sentiment(self, text: str) -> Dict:
         """

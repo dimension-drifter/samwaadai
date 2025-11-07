@@ -1,180 +1,138 @@
 /**
- * API Service - Handles all backend API calls
+ * API Service for Call Tracker AI
+ * Handles all HTTP requests to the backend
  */
 
 const API_BASE_URL = 'http://localhost:8000';
-const WS_BASE_URL = 'ws://localhost:8000';
 
 class APIService {
-    constructor() {
-        this.token = localStorage.getItem('token');
+    constructor(baseURL = API_BASE_URL) {
+        this.baseURL = baseURL;
     }
 
     /**
-     * Generic fetch wrapper with error handling
+     * Make a fetch request with error handling
      */
-    async fetch(endpoint, options = {}) {
-        const url = `${API_BASE_URL}${endpoint}`;
-        const headers = {
-            'Content-Type': 'application/json',
-            ...options.headers
+    async request(endpoint, options = {}) {
+        const url = `${this.baseURL}${endpoint}`;
+        
+        const defaultOptions = {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            ...options
         };
 
-        if (this.token) {
-            headers['Authorization'] = `Bearer ${this.token}`;
-        }
-
         try {
-            const response = await fetch(url, {
-                ...options,
-                headers
-            });
-
+            console.log(`🌐 API Request: ${options.method || 'GET'} ${endpoint}`);
+            
+            const response = await fetch(url, defaultOptions);
+            
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.detail || 'API request failed');
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
             }
 
-            return await response.json();
+            const data = await response.json();
+            console.log(`✅ API Response:`, data);
+            return data;
+
         } catch (error) {
-            console.error('API Error:', error);
+            console.error(`❌ API Error (${endpoint}):`, error);
             throw error;
         }
     }
 
-    // ===================================
-    // Auth Endpoints
-    // ===================================
-
-    async register(userData) {
-        return this.fetch('/api/auth/register', {
-            method: 'POST',
-            body: JSON.stringify(userData)
-        });
-    }
-
-    async login(email, password) {
-        const formData = new URLSearchParams();
-        formData.append('username', email);
-        formData.append('password', password);
-
-        const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: formData
-        });
-
-        if (!response.ok) {
-            throw new Error('Login failed');
-        }
-
-        const data = await response.json();
-        this.token = data.access_token;
-        localStorage.setItem('token', this.token);
-        return data;
-    }
-
-    logout() {
-        this.token = null;
-        localStorage.removeItem('token');
-    }
-
-    // ===================================
-    // Call Endpoints
-    // ===================================
-
+    /**
+     * Create a new call
+     */
     async createCall(callData) {
-        return this.fetch('/api/calls/', {
+        return await this.request('/api/calls/', {
             method: 'POST',
-            body: JSON.stringify(callData)
+            body: JSON.stringify({
+                platform: callData.platform || 'web',
+                contact_name: callData.contact_name || 'Unknown',
+                contact_email: callData.contact_email || '',
+                contact_phone: callData.contact_phone || ''
+            })
         });
     }
 
-    async getCalls(status = null, limit = 50) {
-        let endpoint = `/api/calls/?limit=${limit}`;
-        if (status) {
-            endpoint += `&status=${status}`;
-        }
-        return this.fetch(endpoint);
+    /**
+     * Get all calls
+     */
+    async getCalls(limit = 50, offset = 0) {
+        return await this.request(`/api/calls/?limit=${limit}&offset=${offset}`);
     }
 
+    /**
+     * Get a specific call by ID
+     */
     async getCall(callId) {
-        return this.fetch(`/api/calls/${callId}`);
+        return await this.request(`/api/calls/${callId}`);
     }
 
+    /**
+     * Update a call
+     */
     async updateCall(callId, updateData) {
-        return this.fetch(`/api/calls/${callId}`, {
+        return await this.request(`/api/calls/${callId}`, {
             method: 'PUT',
             body: JSON.stringify(updateData)
         });
     }
 
+    /**
+     * Delete a call
+     */
     async deleteCall(callId) {
-        return this.fetch(`/api/calls/${callId}`, {
+        return await this.request(`/api/calls/${callId}`, {
             method: 'DELETE'
         });
     }
 
-    async getCallInsights(callId) {
-        return this.fetch(`/api/calls/${callId}/insights`);
-    }
-
-    // ===================================
-    // Task Endpoints
-    // ===================================
-
-    async getTasks(status = null) {
-        let endpoint = '/api/tasks/';
-        if (status) {
-            endpoint += `?status=${status}`;
+    /**
+     * Get analytics/stats (if endpoint exists)
+     */
+    async getAnalytics() {
+        try {
+            return await this.request('/api/analytics/stats');
+        } catch (error) {
+            console.warn('Analytics endpoint not available yet');
+            return {
+                total_calls: 0,
+                total_duration: 0,
+                average_sentiment: 'NEUTRAL'
+            };
         }
-        return this.fetch(endpoint);
     }
 
-    async getPendingTasks() {
-        return this.fetch('/api/tasks/pending');
-    }
-
-    async approveTask(taskId) {
-        return this.fetch(`/api/tasks/${taskId}/approve`, {
-            method: 'POST'
-        });
-    }
-
-    async rejectTask(taskId) {
-        return this.fetch(`/api/tasks/${taskId}/reject`, {
-            method: 'POST'
-        });
-    }
-
-    async executeTask(taskId) {
-        return this.fetch(`/api/tasks/${taskId}/execute`, {
-            method: 'POST'
-        });
-    }
-
-    // ===================================
-    // Analytics Endpoints
-    // ===================================
-
-    async getStats() {
-        return this.fetch('/api/analytics/stats');
-    }
-
-    async getRecentActivity(limit = 10) {
-        return this.fetch(`/api/analytics/recent-activity?limit=${limit}`);
-    }
-
-    // ===================================
-    // Health Check
-    // ===================================
-
-    async healthCheck() {
-        return this.fetch('/health');
+    /**
+     * Check API health
+     */
+    async checkHealth() {
+        try {
+            const response = await fetch(`${this.baseURL}/health`);
+            return response.ok;
+        } catch (error) {
+            console.error('Health check failed:', error);
+            return false;
+        }
     }
 }
 
-// Export singleton instance
-const api = new APIService();
+// Create global API instance
+const API = new APIService();
+
+// Make it available globally
+window.API = API;
+
+// Check API health on load
+API.checkHealth().then(healthy => {
+    if (healthy) {
+        console.log('✅ Backend API is healthy');
+    } else {
+        console.error('❌ Backend API is not responding. Please start the server.');
+        alert('Cannot connect to backend server. Please ensure the server is running on http://localhost:8000');
+    }
+});

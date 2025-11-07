@@ -3,315 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Call Tracker AI - Real-time Meeting Assistant</title>
+    <title>Samwaad AI - Call Tracker</title>
     <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <!-- Header -->
-    <header class="header">
-        <div class="container">
-            <div class="logo">
-                <i class="fas fa-phone-volume"></i>
-                <h1>Call Tracker AI</h1>
-            </div>
-            <nav class="nav">
-                <button class="nav-btn active" data-page="dashboard">
-                    <i class="fas fa-home"></i> Dashboard
-                </button>
-                <button class="nav-btn" data-page="calls">
-                    <i class="fas fa-phone"></i> Calls
-                </button>
-                <button class="nav-btn" data-page="tasks">
-                    <i class="fas fa-tasks"></i> Tasks
-                </button>
-                <button class="nav-btn" data-page="crm">
-                    <i class="fas fa-users"></i> CRM
-                </button>
-            </nav>
-            <div class="user-info">
-                <span id="userName">Guest User</span>
-                <button id="logoutBtn" class="btn-secondary">Logout</button>
-            </div>
-        </div>
-    </header>
+    <div class="container">
+        <header>
+            <h1>🎙️ Samwaad AI - Call Tracker</h1>
+            <p>AI-powered call transcription and insights</p>
+        </header>
 
-    <!-- Main Content -->
-    <main class="main-content">
-        <div class="container">
-            
-            <!-- Dashboard Page -->
-            <div id="dashboard-page" class="page active">
-                <div class="page-header">
-                    <h2><i class="fas fa-chart-line"></i> Dashboard</h2>
-                    <button id="startCallBtn" class="btn-primary">
-                        <i class="fas fa-phone-alt"></i> Start New Call
-                    </button>
-                </div>
-
-                <!-- Stats Cards -->
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon blue">
-                            <i class="fas fa-phone"></i>
-                        </div>
-                        <div class="stat-info">
-                            <h3 id="totalCalls">0</h3>
-                            <p>Total Calls</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon green">
-                            <i class="fas fa-check-circle"></i>
-                        </div>
-                        <div class="stat-info">
-                            <h3 id="completedCalls">0</h3>
-                            <p>Completed</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon orange">
-                            <i class="fas fa-clock"></i>
-                        </div>
-                        <div class="stat-info">
-                            <h3 id="pendingTasks">0</h3>
-                            <p>Pending Tasks</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon purple">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <div class="stat-info">
-                            <h3 id="totalContacts">0</h3>
-                            <p>Contacts</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Recent Activity -->
-                <div class="section">
-                    <h3><i class="fas fa-history"></i> Recent Activity</h3>
-                    <div id="recentActivity" class="activity-list">
-                        <p class="empty-state">No recent activity</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Calls Page -->
-            <div id="calls-page" class="page">
-                <div class="page-header">
-                    <h2><i class="fas fa-phone"></i> Call History</h2>
-                    <div class="filters">
-                        <select id="callStatusFilter" class="filter-select">
-                            <option value="all">All Status</option>
-                            <option value="in_progress">In Progress</option>
-                            <option value="completed">Completed</option>
-                            <option value="failed">Failed</option>
-                        </select>
-                        <button id="refreshCallsBtn" class="btn-secondary">
-                            <i class="fas fa-sync"></i> Refresh
-                        </button>
-                    </div>
-                </div>
-
-                <div id="callsList" class="calls-list">
-                    <p class="empty-state">No calls yet. Start your first call!</p>
-                </div>
-            </div>
-
-            <!-- Tasks Page -->
-            <div id="tasks-page" class="page">
-                <div class="page-header">
-                    <h2><i class="fas fa-tasks"></i> Action Items & Tasks</h2>
-                    <div class="filters">
-                        <select id="taskStatusFilter" class="filter-select">
-                            <option value="all">All Tasks</option>
-                            <option value="pending">Pending Approval</option>
-                            <option value="approved">Approved</option>
-                            <option value="executed">Executed</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Pending Tasks Requiring Approval -->
-                <div class="section">
-                    <h3><i class="fas fa-exclamation-circle"></i> Requires Your Approval</h3>
-                    <div id="pendingTasksList" class="tasks-list">
-                        <p class="empty-state">No tasks pending approval</p>
-                    </div>
-                </div>
-
-                <!-- All Tasks -->
-                <div class="section">
-                    <h3><i class="fas fa-list"></i> All Tasks</h3>
-                    <div id="allTasksList" class="tasks-list">
-                        <p class="empty-state">No tasks yet</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- CRM Page -->
-            <div id="crm-page" class="page">
-                <div class="page-header">
-                    <h2><i class="fas fa-users"></i> CRM - Contacts</h2>
-                    <button id="addContactBtn" class="btn-primary">
-                        <i class="fas fa-plus"></i> Add Contact
-                    </button>
-                </div>
-
-                <div class="search-bar">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="contactSearch" placeholder="Search contacts...">
-                </div>
-
-                <div id="contactsList" class="contacts-list">
-                    <p class="empty-state">No contacts yet</p>
-                </div>
-            </div>
-
-        </div>
-    </main>
-
-    <!-- Call Recording Modal -->
-    <div id="callModal" class="modal">
-        <div class="modal-content large">
-            <div class="modal-header">
-                <h2><i class="fas fa-phone-volume"></i> Live Call Recording</h2>
-                <button class="modal-close">&times;</button>
-            </div>
-            <div class="modal-body">
-                
-                <!-- Recording Controls -->
+        <main>
+            <!-- Recording Section -->
+            <section class="recording-section">
+                <h2>📞 Record a Call</h2>
                 <div class="recording-controls">
-                    <button id="recordBtn" class="btn-record">
-                        <i class="fas fa-microphone"></i>
-                        <span>Start Recording</span>
+                    <button id="recordBtn" class="btn btn-primary btn-lg">
+                        🔴 Start Recording
                     </button>
-                    <button id="stopRecordBtn" class="btn-stop" disabled>
-                        <i class="fas fa-stop"></i>
-                        <span>Stop Recording</span>
+                    <button id="stopBtn" class="btn btn-danger btn-lg" disabled>
+                        ⏹️ Stop Recording
                     </button>
-                    <div class="recording-status">
-                        <span class="status-dot"></span>
-                        <span id="recordingStatus">Not Recording</span>
-                    </div>
                 </div>
+                <div id="recordingStatus" class="recording-status" style="display: none;"></div>
+                
+                <!-- Transcription Results -->
+                <div id="transcriptionResults" class="transcription-results" style="display: none;"></div>
+            </section>
 
-                <!-- Live Transcript -->
-                <div class="transcript-section">
-                    <h3><i class="fas fa-closed-captioning"></i> Live Transcript</h3>
-                    <div id="liveTranscript" class="transcript-box">
-                        <p class="transcript-placeholder">Transcript will appear here...</p>
-                    </div>
+            <!-- Recent Calls Section -->
+            <section class="calls-section">
+                <div class="section-header">
+                    <h2>📋 Recent Calls</h2>
+                    <button id="refreshBtn" class="btn btn-secondary">🔄 Refresh</button>
                 </div>
+                
+                <table class="calls-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Date & Time</th>
+                            <th>Duration</th>
+                            <th>Status</th>
+                            <th>Sentiment</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="callsTableBody">
+                        <tr>
+                            <td colspan="6" style="text-align: center;">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+        </main>
 
-                <!-- Real-time Insights -->
-                <div class="insights-section">
-                    <h3><i class="fas fa-lightbulb"></i> Real-time Insights</h3>
-                    <div id="liveInsights" class="insights-box">
-                        <div class="insight-item">
-                            <strong>Action Items:</strong>
-                            <ul id="liveActionItems">
-                                <li class="empty">No action items detected yet</li>
-                            </ul>
-                        </div>
-                        <div class="insight-item">
-                            <strong>Key Decisions:</strong>
-                            <ul id="liveDecisions">
-                                <li class="empty">No decisions detected yet</li>
-                            </ul>
-                        </div>
-                        <div class="insight-item">
-                            <strong>Sentiment:</strong>
-                            <span id="liveSentiment" class="sentiment-badge neutral">Neutral</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Call Metadata -->
-                <div class="call-metadata">
-                    <div class="metadata-item">
-                        <i class="fas fa-clock"></i>
-                        <span>Duration: <strong id="callDuration">00:00</strong></span>
-                    </div>
-                    <div class="metadata-item">
-                        <i class="fas fa-calendar"></i>
-                        <span>Started: <strong id="callStartTime">--</strong></span>
-                    </div>
-                </div>
-
-            </div>
-        </div>
+        <footer>
+            <p>&copy; 2024 Samwaad AI. Powered by Google Cloud Speech & Gemini AI.</p>
+        </footer>
     </div>
 
-    <!-- Task Details Modal -->
-    <div id="taskModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2><i class="fas fa-tasks"></i> Task Details</h2>
-                <button class="modal-close">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div id="taskDetails"></div>
-                <div class="task-actions">
-                    <button id="approveTaskBtn" class="btn-success">
-                        <i class="fas fa-check"></i> Approve
-                    </button>
-                    <button id="rejectTaskBtn" class="btn-danger">
-                        <i class="fas fa-times"></i> Reject
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Contact Modal -->
-    <div id="contactModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2><i class="fas fa-user"></i> Contact Details</h2>
-                <button class="modal-close">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="contactForm">
-                    <div class="form-group">
-                        <label>Name *</label>
-                        <input type="text" id="contactName" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" id="contactEmail">
-                    </div>
-                    <div class="form-group">
-                        <label>Phone</label>
-                        <input type="tel" id="contactPhone">
-                    </div>
-                    <div class="form-group">
-                        <label>Company</label>
-                        <input type="text" id="contactCompany">
-                    </div>
-                    <div class="form-group">
-                        <label>Title</label>
-                        <input type="text" id="contactTitle">
-                    </div>
-                    <div class="form-group">
-                        <label>Notes</label>
-                        <textarea id="contactNotes" rows="3"></textarea>
-                    </div>
-                    <div class="form-actions">
-                        <button type="submit" class="btn-primary">Save Contact</button>
-                        <button type="button" class="btn-secondary modal-close">Cancel</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Notification Toast -->
-    <div id="toast" class="toast"></div>
-
-    <!-- Scripts -->
+    <!-- Scripts - LOAD IN THIS ORDER -->
     <script src="js/api.js"></script>
     <script src="js/websocket.js"></script>
     <script src="js/app.js"></script>

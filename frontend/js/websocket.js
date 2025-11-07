@@ -1,228 +1,237 @@
-/**
- * WebSocket Service - Handles real-time call recording
- */
-
-class WebSocketService {
+class WebSocketManager {
     constructor() {
         this.ws = null;
         this.callId = null;
         this.mediaRecorder = null;
-        this.audioStream = null;
-        this.callbacks = {};
+        this.audioChunks = [];
+        this.stream = null;
+        this.isRecording = false;
     }
 
-    /**
-     * Connect to WebSocket for a call
-     */
-    connect(callId) {
-        return new Promise((resolve, reject) => {
-            this.callId = callId;
-            const wsUrl = `${WS_BASE_URL}/ws/call/${callId}`;
+    async startRecording(callId) {
+        this.callId = callId;
+        this.audioChunks = [];
 
-            console.log('Connecting to WebSocket:', wsUrl);
-
-            this.ws = new WebSocket(wsUrl);
-
-            this.ws.onopen = () => {
-                console.log('✅ WebSocket connected');
-                resolve();
-            };
-
-            this.ws.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    this.handleMessage(data);
-                } catch (error) {
-                    console.error('Error parsing WebSocket message:', error);
-                }
-            };
-
-            this.ws.onerror = (error) => {
-                console.error('❌ WebSocket error:', error);
-                reject(error);
-            };
-
-            this.ws.onclose = () => {
-                console.log('👋 WebSocket disconnected');
-                this.cleanup();
-                if (this.callbacks.onClose) {
-                    this.callbacks.onClose();
-                }
-            };
-        });
-    }
-
-    /**
-     * Handle incoming WebSocket messages
-     */
-    handleMessage(data) {
-        console.log('📨 WebSocket message:', data);
-
-        switch (data.type) {
-            case 'connected':
-                if (this.callbacks.onConnected) {
-                    this.callbacks.onConnected(data);
-                }
-                break;
-
-            case 'transcript':
-                if (this.callbacks.onTranscript) {
-                    this.callbacks.onTranscript(data.data);
-                }
-                break;
-
-            case 'partial_insights':
-                if (this.callbacks.onPartialInsights) {
-                    this.callbacks.onPartialInsights(data.data);
-                }
-                break;
-
-            case 'call_completed':
-                if (this.callbacks.onCallCompleted) {
-                    this.callbacks.onCallCompleted(data.insights);
-                }
-                break;
-
-            case 'error':
-                console.error('WebSocket error:', data.message);
-                if (this.callbacks.onError) {
-                    this.callbacks.onError(data.message);
-                }
-                break;
-
-            default:
-                console.log('Unknown message type:', data.type);
-        }
-    }
-
-    /**
-     * Register callbacks for WebSocket events
-     */
-    on(event, callback) {
-        const eventMap = {
-            'connected': 'onConnected',
-            'transcript': 'onTranscript',
-            'insights': 'onPartialInsights',
-            'completed': 'onCallCompleted',
-            'error': 'onError',
-            'close': 'onClose'
-        };
-
-        const callbackName = eventMap[event];
-        if (callbackName) {
-            this.callbacks[callbackName] = callback;
-        }
-    }
-
-    /**
-     * Start recording audio from microphone
-     */
-    async startRecording() {
         try {
-            // Request microphone access
-            this.audioStream = await navigator.mediaDevices.getUserMedia({
+            // Request microphone access with specific constraints
+            this.stream = await navigator.mediaDevices.getUserMedia({
                 audio: {
                     echoCancellation: true,
                     noiseSuppression: true,
-                    sampleRate: 16000
+                    autoGainControl: true,
+                    sampleRate: 48000,
+                    channelCount: 1
                 }
             });
 
             console.log('🎤 Microphone access granted');
 
-            // Create MediaRecorder
-            const options = {
-                mimeType: 'audio/webm;codecs=opus'
+            // Create AudioContext for proper audio processing
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                sampleRate: 48000
+            });
+            
+            const source = audioContext.createMediaStreamSource(this.stream);
+            const processor = audioContext.createScriptProcessor(4096, 1, 1);
+
+            // Connect WebSocket
+            this.ws = new WebSocket(`ws://localhost:8000/ws/call/${callId}`);
+
+            this.ws.onopen = () => {
+                console.log('✅ WebSocket connected');
+                
+                // Send audio configuration
+                this.ws.send(JSON.stringify({
+                    type: 'audio_config',
+                    sampleRate: audioContext.sampleRate,
+                    channels: 1,
+                    sampleWidth: 2,
+                    isFloat32: false
+                }));
+
+                // Send start recording message
+                this.ws.send(JSON.stringify({
+                    type: 'start_recording'
+                }));
+
+                this.isRecording = true;
+
+                // Process audio in real-time
+                processor.onaudioprocess = (e) => {
+                    if (!this.isRecording) return;
+
+                    const inputData = e.inputBuffer.getChannelData(0); // Float32Array
+                    
+                    // Convert Float32 to Int16 PCM
+                    const int16Data = new Int16Array(inputData.length);
+                    for (let i = 0; i < inputData.length; i++) {
+                        // Clamp to [-1, 1] and convert to 16-bit integer
+                        const s = Math.max(-1, Math.min(1, inputData[i]));
+                        int16Data[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+                    }
+
+                    // Send as binary data
+                    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                        this.ws.send(int16Data.buffer);
+                    }
+
+                    // Store for debugging
+                    this.audioChunks.push(int16Data.buffer.slice(0));
+                };
+
+                // Connect the audio processing chain
+                source.connect(processor);
+                processor.connect(audioContext.destination);
+
+                console.log('🎙️ Recording started...');
+                console.log(`   Sample Rate: ${audioContext.sampleRate}Hz`);
+                console.log(`   Format: Int16 PCM`);
             };
 
-            // Fallback for browsers that don't support webm
-            if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                options.mimeType = 'audio/ogg;codecs=opus';
-                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                    options.mimeType = 'audio/wav';
-                }
-            }
+            this.ws.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                console.log('📨 Received:', message.type);
 
-            this.mediaRecorder = new MediaRecorder(this.audioStream, options);
-
-            // Handle audio data
-            this.mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0 && this.ws && this.ws.readyState === WebSocket.OPEN) {
-                    // Send audio data to backend
-                    this.ws.send(event.data);
-                    console.log('📤 Sent audio chunk:', event.data.size, 'bytes');
+                if (message.type === 'connected') {
+                    console.log('✅ Backend ready:', message.message);
+                } else if (message.type === 'processing_started') {
+                    console.log('⏳ Processing:', message.message);
+                    this.showProcessingUI();
+                } else if (message.type === 'call_completed') {
+                    console.log('✅ Transcription completed!');
+                    this.handleTranscriptionComplete(message);
+                } else if (message.type === 'error') {
+                    console.error('❌ Error:', message.message);
+                    alert(`Error: ${message.message}`);
                 }
             };
 
-            // Start recording (send chunks every 250ms)
-            this.mediaRecorder.start(250);
+            this.ws.onerror = (error) => {
+                console.error('❌ WebSocket error:', error);
+                alert('Connection error. Please try again.');
+            };
 
-            console.log('✅ Recording started');
-            return true;
+            this.ws.onclose = () => {
+                console.log('🔌 WebSocket closed');
+                this.cleanup();
+            };
 
         } catch (error) {
-            console.error('❌ Failed to start recording:', error);
-            
-            // User-friendly error messages
-            if (error.name === 'NotAllowedError') {
-                throw new Error('Microphone access denied. Please allow microphone access and try again.');
-            } else if (error.name === 'NotFoundError') {
-                throw new Error('No microphone found. Please connect a microphone and try again.');
-            } else {
-                throw new Error('Failed to start recording: ' + error.message);
-            }
+            console.error('❌ Microphone access error:', error);
+            alert('Could not access microphone. Please check permissions.');
+            throw error;
         }
     }
 
-    /**
-     * Stop recording
-     */
     stopRecording() {
-        if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
-            this.mediaRecorder.stop();
-            console.log('⏹️ Recording stopped');
-        }
+        console.log('⏹️ Stopping recording...');
+        this.isRecording = false;
 
-        // Send stop message to backend
+        // Send stop message
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
             this.ws.send(JSON.stringify({
                 type: 'stop_recording'
             }));
         }
 
-        this.cleanup();
+        console.log(`📊 Recorded ${this.audioChunks.length} chunks`);
+        const totalBytes = this.audioChunks.reduce((sum, chunk) => sum + chunk.byteLength, 0);
+        console.log(`📊 Total audio data: ${totalBytes} bytes`);
     }
 
-    /**
-     * Disconnect WebSocket
-     */
-    disconnect() {
+    cleanup() {
+        // Stop all tracks
+        if (this.stream) {
+            this.stream.getTracks().forEach(track => track.stop());
+            this.stream = null;
+        }
+
+        // Close WebSocket
         if (this.ws) {
             this.ws.close();
             this.ws = null;
         }
-        this.cleanup();
+
+        this.audioChunks = [];
+        this.isRecording = false;
+        console.log('🧹 Cleanup completed');
     }
 
-    /**
-     * Cleanup resources
-     */
-    cleanup() {
-        // Stop media recorder
-        if (this.mediaRecorder) {
-            if (this.mediaRecorder.state !== 'inactive') {
-                this.mediaRecorder.stop();
-            }
-            this.mediaRecorder = null;
+    showProcessingUI() {
+        const recordBtn = document.getElementById('recordBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        
+        if (recordBtn) recordBtn.disabled = true;
+        if (stopBtn) stopBtn.disabled = true;
+        
+        // Show processing indicator
+        const statusDiv = document.getElementById('recordingStatus');
+        if (statusDiv) {
+            statusDiv.textContent = '⏳ Processing your recording...';
+            statusDiv.className = 'recording-status processing';
+        }
+    }
+
+    handleTranscriptionComplete(message) {
+        const { insights, transcript } = message;
+
+        console.log('📝 Transcript:', transcript.text);
+        console.log('💡 Summary:', insights.summary);
+
+        // Update UI
+        const statusDiv = document.getElementById('recordingStatus');
+        if (statusDiv) {
+            statusDiv.textContent = '✅ Recording processed!';
+            statusDiv.className = 'recording-status completed';
         }
 
-        // Stop audio stream
-        if (this.audioStream) {
-            this.audioStream.getTracks().forEach(track => track.stop());
-            this.audioStream = null;
+        // Display results
+        const resultsDiv = document.getElementById('transcriptionResults');
+        if (resultsDiv) {
+            resultsDiv.innerHTML = `
+                <div class="results-container">
+                    <h3>📝 Transcript</h3>
+                    <div class="transcript-text">
+                        ${transcript.text || 'No speech detected'}
+                    </div>
+                    
+                    <h3>💡 AI Summary</h3>
+                    <div class="summary-text">
+                        ${insights.summary || 'No summary available'}
+                    </div>
+                    
+                    ${insights.action_items && insights.action_items.length > 0 ? `
+                        <h3>✅ Action Items</h3>
+                        <ul class="action-items">
+                            ${insights.action_items.map(item => `<li>${item}</li>`).join('')}
+                        </ul>
+                    ` : ''}
+                    
+                    ${insights.key_decisions && insights.key_decisions.length > 0 ? `
+                        <h3>🎯 Key Decisions</h3>
+                        <ul class="key-decisions">
+                            ${insights.key_decisions.map(item => `<li>${item}</li>`).join('')}
+                        </ul>
+                    ` : ''}
+                    
+                    <div class="sentiment-badge ${insights.sentiment.toLowerCase()}">
+                        Sentiment: ${insights.sentiment}
+                    </div>
+                </div>
+            `;
+            resultsDiv.style.display = 'block';
         }
+
+        // Re-enable buttons
+        const recordBtn = document.getElementById('recordBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        if (recordBtn) recordBtn.disabled = false;
+        if (stopBtn) stopBtn.disabled = true;
+
+        // Cleanup
+        this.cleanup();
     }
 }
 
-// Export singleton instance
-const wsService = new WebSocketService();
+// Export for use in app.js
+window.WebSocketManager = WebSocketManager;

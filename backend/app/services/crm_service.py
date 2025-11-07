@@ -169,10 +169,15 @@ class CRMService:
                 update_fields = []
                 update_values = []
                 
-                for field in ['name', 'phone', 'company', 'title', 'notes', 'tags']:
+                for field in ['name', 'phone', 'company', 'title', 'notes']:
                     if field in contact_data:
                         update_fields.append(f"{field} = ?")
                         update_values.append(contact_data[field])
+                
+                # Handle tags separately (convert to JSON)
+                if 'tags' in contact_data:
+                    update_fields.append("tags = ?")
+                    update_values.append(json.dumps(contact_data['tags']))
                 
                 if update_fields:
                     update_values.append(contact_id)
@@ -185,6 +190,9 @@ class CRMService:
                 return contact_id
         
         # Create new contact
+        # Convert tags list to JSON string
+        tags_json = json.dumps(contact_data.get('tags', []))
+        
         cursor.execute("""
             INSERT INTO contacts (name, email, phone, company, title, notes, tags)
             VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -195,12 +203,12 @@ class CRMService:
             contact_data.get('company'),
             contact_data.get('title'),
             contact_data.get('notes'),
-            json.dumps(contact_data.get('tags', []))
+            tags_json  # Changed: Now it's a JSON string
         ))
         
         self.conn.commit()
         return cursor.lastrowid
-    
+        
     async def _create_contact_sheets(self, contact_data: Dict) -> Optional[int]:
         """Create or update contact in Google Sheets"""
         try:

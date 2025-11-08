@@ -175,7 +175,7 @@ function displayRecentCalls(calls) {
     if (!tableBody) return;
     
     if (calls.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: #86868b;">No calls yet. Start recording!</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: #86868b;">No calls yet. Start recording!</td></tr>';
         return;
     }
     
@@ -218,11 +218,6 @@ function displayRecentCalls(calls) {
                 </td>
                 <td class="col-folders">
                     <span style="color: #86868b;">—</span>
-                </td>
-                <td class="col-owner">
-                    <div class="user-avatar" style="width: 28px; height: 28px; font-size: 11px; background: #5a4fb7;">
-                        ${call.contact_name ? call.contact_name.substring(0, 2).toUpperCase() : 'AI'}
-                    </div>
                 </td>
             </tr>
         `;

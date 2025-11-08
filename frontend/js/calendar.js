@@ -72,6 +72,12 @@ async function loadCalendarEvents() {
         updateRefreshTime('Loading...');
         
         const events = await API.getCalendarEvents(50);
+        
+        // DEBUG: Log the raw response
+        console.log('📦 Raw API response:', events);
+        console.log('📊 Event count:', events.length);
+        console.log('📋 First event:', events[0]);
+        
         calendarEvents = events;
         
         console.log(`✅ Loaded ${events.length} calendar events`);
@@ -92,9 +98,14 @@ function displayCalendarEvents(events) {
     const tbody = document.getElementById('calendarEventsBody');
     const paginationTexts = document.querySelectorAll('.pagination-text');
     
-    if (!tbody) return;
+    if (!tbody) {
+        console.error('❌ Calendar table body not found!');
+        return;
+    }
     
-    if (events.length === 0) {
+    console.log(`📊 Displaying ${events.length} events`);
+    
+    if (!events || events.length === 0) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="4" class="empty-state">
@@ -119,8 +130,16 @@ function displayCalendarEvents(events) {
     
     // Display events (show first 25)
     tbody.innerHTML = events.slice(0, 25).map(event => {
-        const startDate = new Date(event.start);
-        const endDate = new Date(event.end);
+        // Handle different date formats
+        let startDate, endDate;
+        try {
+            startDate = new Date(event.start.dateTime || event.start.date || event.start);
+            endDate = new Date(event.end.dateTime || event.end.date || event.end);
+        } catch (err) {
+            console.error('❌ Date parsing error:', err, event);
+            startDate = new Date();
+            endDate = new Date();
+        }
         
         // Format date
         const dateStr = startDate.toLocaleDateString('en-US', { 
@@ -142,12 +161,20 @@ function displayCalendarEvents(events) {
             hour12: true 
         });
         
+        // Get organizer info
+        const organizerName = event.organizer?.displayName || 
+                             event.organizer?.email || 
+                             'Unknown';
+        
+        // Get event link
+        const eventLink = event.htmlLink || event.link || '#';
+        
         return `
             <tr data-event-id="${event.id}">
                 <td class="col-meeting">
                     <div class="event-meeting-info">
                         <div class="event-title">${escapeHtml(event.summary || 'Untitled Event')}</div>
-                        ${event.organizer ? `<div class="event-organizer">Organized by ${escapeHtml(event.organizer)}</div>` : ''}
+                        <div class="event-organizer">Organized by ${escapeHtml(organizerName)}</div>
                     </div>
                 </td>
                 <td class="col-datetime">
@@ -158,7 +185,7 @@ function displayCalendarEvents(events) {
                 </td>
                 <td class="col-addread">
                     <div class="event-actions">
-                        ${event.link ? `<a href="${event.link}" target="_blank" class="event-action-btn">Open</a>` : ''}
+                        <a href="${eventLink}" target="_blank" class="event-action-btn">Open</a>
                     </div>
                 </td>
                 <td class="col-flexible">
@@ -169,6 +196,8 @@ function displayCalendarEvents(events) {
             </tr>
         `;
     }).join('');
+    
+    console.log('✅ Calendar events displayed');
 }
 
 /**

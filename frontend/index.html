@@ -11,31 +11,54 @@
     <aside class="sidebar">
         <div class="sidebar-header">
             <div class="logo">
-                <span class="logo-icon">🎙️</span>
+                <span class="logo-icon"></span>
                 <span class="logo-text">Samwaad AI</span>
             </div>
+            <div class="enterprise-badge">
+                <span class="star-icon"></span>
+                Enterprise
+            </div>
+        </div>
 
         <nav class="sidebar-nav">
             <a href="#" class="nav-item">
-                <span class="nav-icon">🔍</span>
-                <span class="nav-text">Search </span>
+                <span class="nav-icon"></span>
+                <span class="nav-text">Search</span>
             </a>
             <a href="#" class="nav-item active">
-                <span class="nav-icon">📄</span>
+                <span class="nav-icon"></span>
                 <span class="nav-text">Reports</span>
             </a>
             <a href="#" class="nav-item">
-                <span class="nav-icon">✉️</span>
+                <span class="nav-icon"></span>
                 <span class="nav-text">Email</span>
                 <span class="nav-action">+</span>
             </a>
             <a href="calendar.html" class="nav-item">
-                <span class="nav-icon">📅</span>
+                <span class="nav-icon"></span>
                 <span class="nav-text">Calendar</span>
             </a>
-           
         </nav>
 
+        <div class="sidebar-footer">
+            <div class="scheduler-section">
+                <div class="scheduler-header">
+                    <span>Scheduler</span>
+                </div>
+                <div class="scheduler-actions">
+                    <button class="copy-link-btn">
+                        <span class="link-icon"></span>
+                        Copy Link
+                    </button>
+                    <button class="manage-btn">Manage</button>
+                </div>
+            </div>
+            <div class="user-profile">
+                <div class="user-avatar">D</div>
+                <span class="user-name">Deepa Panchal</span>
+                <span class="nav-arrow"></span>
+            </div>
+        </div>
     </aside>
 
     <!-- Main Content -->
@@ -43,20 +66,20 @@
         <!-- Header -->
         <header class="top-header">
             <div class="header-left">
-                <button class="back-btn">‹</button>
+                <button class="back-btn"></button>
                 <h1 class="page-title">Reports</h1>
             </div>
             <div class="header-center">
                 <div class="search-container">
-                    <span class="search-icon">🌐</span>
+                    <span class="search-icon"></span>
                     <input type="text" placeholder="Ask Search Copilot anything..." class="search-input">
-                    <button class="search-submit">➤</button>
+                    <button class="search-submit"></button>
                 </div>
             </div>
             <div class="header-right">
-                <span class="refresh-time">🔄 Last refreshed at 2:08 AM</span>
+                <span class="refresh-time">Last refreshed at 2:08 AM</span>
                 <button class="upload-btn">
-                    <span class="upload-icon">⬆</span>
+                    <span class="upload-icon"></span>
                     Upload
                 </button>
             </div>
@@ -67,14 +90,14 @@
             <!-- Recording Section -->
             <section class="recording-section">
                 <div class="recording-header">
-                    <h2>📞 Record a Call</h2>
+                    <h2>Record a Call</h2>
                 </div>
                 <div class="recording-controls">
                     <button id="recordBtn" class="btn btn-primary btn-lg">
-                        🔴 Start Recording
+                        Start Recording
                     </button>
                     <button id="stopBtn" class="btn btn-danger btn-lg" disabled>
-                        ⏹️ Stop Recording
+                        Stop Recording
                     </button>
                 </div>
                 <div id="recordingStatus" class="recording-status" style="display: none;"></div>
@@ -94,26 +117,26 @@
             <!-- Filters Bar -->
             <div class="filters-bar">
                 <div class="filter-search">
-                    <span class="filter-icon">🔍</span>
+                    <span class="filter-icon"></span>
                     <input type="text" placeholder="Filter by report title..." class="filter-input">
                 </div>
                 <div class="filter-group">
                     <button class="filter-btn">
-                        <span class="calendar-icon">📅</span>
+                        <span class="calendar-icon"></span>
                         Anytime
-                        <span class="dropdown-icon">⌄</span>
+                        <span class="dropdown-icon"></span>
                     </button>
                     <button class="filter-btn">
                         Type
-                        <span class="dropdown-icon">⌄</span>
+                        <span class="dropdown-icon"></span>
                     </button>
                     <button class="filter-btn">
                         Source
-                        <span class="dropdown-icon">⌄</span>
+                        <span class="dropdown-icon"></span>
                     </button>
                     <button class="filter-btn">
                         Folder
-                        <span class="dropdown-icon">⌄</span>
+                        <span class="dropdown-icon"></span>
                     </button>
                     <button id="refreshBtn" class="filter-btn icon-only">
                         ⚙
@@ -145,28 +168,27 @@
                 </table>
             </section>
 
-            <!-- Getting Started Banner -->
             <!-- Footer -->
             <footer class="bottom-footer">
                 <a href="#" class="footer-link">
-                    <span class="footer-icon">🎙️</span>
+                    <span class="footer-icon"></span>
                     Visit samwaad.ai
-                    <span class="external-icon">↗</span>
+                    <span class="external-icon"></span>
                 </a>
             </footer>
         </main>
+
         <div id="callDetailModal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="document.getElementById('callDetailModal').style.display='none'">&times;</span>
-            <div id="callDetailContent">
-                <!-- Content will be injected here by app.js -->
-                <h2 style="color: #5a4fb7;">Loading Call Details...</h2>
+            <div class="modal-content">
+                <span class="close-btn" onclick="document.getElementById('callDetailModal').style.display='none'">&times;</span>
+                <div id="callDetailContent">
+                    <h2>Loading Call Details...</h2>
+                </div>
             </div>
         </div>
     </div>
-    </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
     <script src="js/api.js"></script>
     <script src="js/websocket.js"></script>
     <script src="js/app.js"></script>

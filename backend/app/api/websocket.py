@@ -7,6 +7,8 @@ from app.services.ai_service import AIService
 from app.services.crm_service import CRMService
 from datetime import datetime
 from app.services.calendar_service import CalendarService
+from app.models.sent_email import SentEmail # IMPORT THE NEW MODEL
+
 import json
 import os
 import wave
@@ -338,13 +340,39 @@ async def websocket_endpoint(
                         
                         if recipient_email:
                             print(f"🚀 Attempting to send analysis email to {recipient_email}...")
-                            email_result = await email_service.send_post_meeting_analysis(
+
+                            # --- START OF CORRECTION ---
+                            # Explicitly define the subject and body before using them
+                            email_subject = f"Analysis for Your Meeting: {insights.get('title', 'Meeting Summary')}"
+                            email_body = email_service._generate_analysis_html(insights, full_text)
+                            
+                            # Now, send the email using the defined variables
+                            email_result = await email_service.send_email(
                                 to_email=recipient_email,
-                                insights=insights,
-                                transcript_text=full_text
+                                subject=email_subject,
+                                body=email_body,
+                                is_html=True
                             )
+                            # --- END OF CORRECTION ---
+                            
                             if email_result.get("success"):
                                 print(f"✅ Analysis email sent successfully. Message ID: {email_result.get('message_id')}")
+                                # Now, the variables are guaranteed to exist here
+                                try:
+                                    sent_email_record = SentEmail(
+                                        call_id=int(call.id),
+                                        user_id=1,
+                                        recipient=recipient_email,
+                                        subject=email_subject, # This will now work
+                                        body=email_body,       # This will also work
+                                        sendgrid_message_id=email_result.get('message_id')
+                                    )
+                                    db.add(sent_email_record)
+                                    db.commit()
+                                    print(f"💾 Email record saved to database with ID: {sent_email_record.id}")
+                                except Exception as db_error:
+                                    print(f"❌ Error saving sent email record to database: {db_error}")
+                                    db.rollback()
                             else:
                                 print(f"❌ Failed to send analysis email. Error: {email_result.get('error')}")
                         else:

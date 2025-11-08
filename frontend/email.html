@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sent Emails - Samwaad AI</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+    
+    <div class="sidebar-header">
+            <div class="logo">
+                <span class="logo-icon">🎙️</span>
+                <span class="logo-text">Samwaad AI</span>
+            </div>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item">
+                <span class="nav-icon">🔍</span>
+                <span class="nav-text">Search</span>
+            </a>
+            <a href="index.html" class="nav-item">
+                <span class="nav-icon">📄</span>
+                <span class="nav-text">Reports</span>
+            </a>
+            <a href="email.html" class="nav-item active">
+                <span class="nav-icon">✉️</span>
+                <span class="nav-text">Email</span>
+                <span class="nav-action">+</span>
+            </a>
+            <a href="calendar.html" class="nav-item">
+                <span class="nav-icon">📅</span>
+                <span class="nav-text">Calendar</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-wrapper">
+        <!-- Header -->
+        <header class="top-header">
+            <div class="header-left">
+                <button class="back-btn" onclick="history.back()">‹</button>
+                <h1 class="page-title">Sent Emails</h1>
+            </div>
+            <div class="header-center">
+                <div class="search-container">
+                    <span class="search-icon">🌐</span>
+                    <input type="text" placeholder="Ask Search Copilot anything..." class="search-input">
+                    <button class="search-submit">➤</button>
+                </div>
+            </div>
+            <div class="header-right">
+                <span class="refresh-time" id="emailRefreshTime">🔄 Loading...</span>
+                <button class="upload-btn" style="display: none;">
+                    <span class="upload-icon">⬆</span>
+                    Upload
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <div class="email-list-container" id="emailListContainer">
+                <div class="loading-state">
+                    <p>Loading sent emails...</p>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Modal for viewing full email -->
+        <div id="emailDetailModal" class="modal">
+            <div class="modal-content">
+                <span class="close-btn" onclick="document.getElementById('emailDetailModal').style.display='none'">&times;</span>
+                <div id="emailDetailContent">
+                    <!-- Full email content will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="bottom-footer">
+            <a href="#" class="footer-link">
+                <span class="footer-icon">🎙️</span>
+                Visit samwaad.ai
+                <span class="external-icon">↗</span>
+            </a>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/api.js"></script>
+    <script src="js/email.js"></script>
+</body>
+</html>

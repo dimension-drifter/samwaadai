@@ -41,6 +41,7 @@ class Call(Base):
     # Relationships
     user = relationship("User", back_populates="calls")
     tasks = relationship("Task", back_populates="call")
+    sent_emails = relationship("SentEmail", back_populates="call")
     
     def __repr__(self):
         return f"<Call {self.id} - {self.platform}>"

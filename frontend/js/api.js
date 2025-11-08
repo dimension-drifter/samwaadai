@@ -147,7 +147,12 @@ class APIService {
             return { authenticated: false, error: error.message };
         }
     }
+     async getSentEmails(limit = 100, offset = 0) {
+        return await this.request(`/api/emails/?limit=${limit}&offset=${offset}`);
+    }
 }
+
+
 
 // Create global API instance
 const API = new APIService();

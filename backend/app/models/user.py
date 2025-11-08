@@ -29,6 +29,7 @@ class User(Base):
     # Relationships
     calls = relationship("Call", back_populates="user")
     tasks = relationship("Task", back_populates="user")
+    sent_emails = relationship("SentEmail", back_populates="user")
     
     def __repr__(self):
         return f"<User {self.email}>"

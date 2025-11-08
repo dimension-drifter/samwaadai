@@ -1,0 +1,45 @@
+/* Styles for Samwaad Meet Listener panel (injected into meet.google.com) */
+#samwaad-panel {
+  position: fixed;
+  right: 18px;
+  top: 18px;
+  width: 300px;
+  background: linear-gradient(180deg,#ffffff,#f8f8fb);
+  border-radius: 12px;
+  box-shadow: 0 6px 22px rgba(10,10,30,0.22);
+  font-family: Inter, Arial, sans-serif;
+  color: #111;
+  z-index: 1000000;
+  transform: translateY(-12px);
+  opacity: 0;
+  transition: all 300ms ease;
+  pointer-events: none;
+}
+.samwaad-visible#samwaad-panel { 
+  transform: translateY(0); 
+  opacity: 1; 
+  pointer-events: auto;
+}
+.samwaad-hidden#samwaad-panel {
+  transform: translateY(-12px);
+  opacity: 0;
+  pointer-events: none;
+}
+#samwaad-panel .samwaad-header {
+  padding: 12px 14px;
+  font-weight: 700;
+  border-bottom: 1px solid rgba(16,16,32,0.04);
+  color: #382b9a;
+}
+#samwaad-panel .samwaad-body { padding: 12px 14px; }
+#samwaad-status { font-size: 13px; color: #5e5e66; margin-bottom: 8px; }
+.samwaad-buttons { display:flex; gap:8px; margin-bottom:8px }
+.samwaad-buttons button { flex:1; padding:8px 10px; border-radius:8px; border: none; cursor:pointer; font-weight:600 }
+#samwaad-start { background: linear-gradient(180deg,#6a5bf6,#5b41d6); color: #fff }
+#samwaad-stop { background: #fff; border: 1px solid #e6e6ee; color: #333 }
+.samwaad-log { max-height:160px; overflow:auto; font-size:12px; color:#444; border-top:1px dashed #efeff5; padding-top:8px }
+
+/* Small screens: keep it compact */
+@media (max-width: 800px) {
+  #samwaad-panel { width: 90%; left: 5%; right: 5%; }
+}

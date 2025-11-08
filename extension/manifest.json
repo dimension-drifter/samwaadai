@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Samwaad Meet Listener",
+  "version": "1.0",
+  "description": "Listen to Google Meet audio and stream to Call Tracker AI for real-time transcription and calendar events.",
+  "permissions": ["storage", "notifications"],
+  "host_permissions": [
+    "http://localhost:8000/*",
+    "ws://localhost:8000/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://meet.google.com/*"],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_end"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Samwaad Meet Listener"
+  }
+}

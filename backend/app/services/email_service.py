@@ -21,7 +21,7 @@ class EmailService:
             self.client = SendGridAPIClient(api_key=settings.SENDGRID_API_KEY)
         
         # Default sender email (configure in settings)
-        self.from_email = os.getenv("SENDER_EMAIL", "noreply@calltracker.ai")
+        self.from_email = os.getenv("SENDER_EMAIL", "pkmpunit2003@gmail.com")
     
     async def send_email(
         self,
@@ -81,7 +81,98 @@ class EmailService:
                 "success": False,
                 "error": str(e)
             }
-    
+    async def send_post_meeting_analysis(
+        self,
+        to_email: str,
+        insights: Dict,
+        transcript_text: str
+    ) -> Dict:
+        """
+        Generates and sends the complete post-meeting analysis email.
+        """
+        subject = f"Analysis for Your Meeting: {insights.get('title', 'Meeting Summary')}"
+        
+        body = self._generate_analysis_html(insights, transcript_text)
+        
+        print(f"📧 Preparing to send analysis email to {to_email}...")
+        
+        return await self.send_email(
+            to_email=to_email,
+            subject=subject,
+            body=body,
+            is_html=True
+        )
+
+    def _generate_analysis_html(self, insights: Dict, transcript_text: str) -> str:
+        """Generates a professional HTML email body for the meeting analysis."""
+
+        # Safely get sentiment information
+        sentiment = insights.get('sentiment', {})
+        sentiment_label = sentiment.get('overall_sentiment', 'NEUTRAL').upper()
+        sentiment_reason = sentiment.get('reasoning', 'Not available.')
+
+        # Dynamically build HTML for lists to avoid empty sections
+        def build_list_html(title, items, formatter):
+            if not items:
+                return ""
+            list_items = "".join(formatter(item) for item in items)
+            return f"""
+                <h3 style="color: #2c3e50; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-top: 25px;">{title}</h3>
+                <ul style="padding-left: 20px; line-height: 1.7;">{list_items}</ul>
+            """
+
+        action_items_html = build_list_html(
+            "✅ Action Items", insights.get('action_items', []),
+            lambda item: f"<li><strong>{item.get('task', 'N/A')}</strong> (Owner: {item.get('owner', 'Unassigned')})</li>"
+        )
+        decisions_html = build_list_html(
+            "🎯 Key Decisions", insights.get('key_decisions', []),
+            lambda item: f"<li>{item}</li>"
+        )
+        questions_html = build_list_html(
+            "❓ Key Questions", insights.get('questions_asked', []),
+            lambda item: f"<li><em>{item}</em></li>"
+        )
+
+        # Main HTML structure
+        return f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f9f9f9; padding: 20px;">
+            <div style="max-width: 700px; margin: 0 auto; background-color: #ffffff; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
+                <div style="background-color: #5a4fb7; color: white; padding: 20px; text-align: center;">
+                    <h1 style="margin: 0; font-size: 24px;">Samwaad AI Meeting Analysis</h1>
+                </div>
+                <div style="padding: 25px;">
+                    <h2 style="color: #1d1d1f; font-size: 20px;">{insights.get('title', 'Meeting Summary')}</h2>
+                    
+                    <div style="background: #f5f5f7; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                        <h3 style="margin-top:0; color: #2c3e50;">💡 AI Summary</h3>
+                        {insights.get('summary', 'Not available.').replace('### Abstract', '<strong>Abstract:</strong><br/>').replace('### Key Points', '<br/><strong>Key Points:</strong>').replace('### Next Steps', '<br/><strong>Next Steps:</strong>').replace('- ', '<br/>- ')}
+                    </div>
+
+                    <div style="margin: 20px 0;">
+                         <strong>Sentiment:</strong> <span style="font-weight: bold; color: {'#dc3545' if sentiment_label == 'NEGATIVE' else '#28a745' if sentiment_label == 'POSITIVE' else '#6c757d'};">{sentiment_label}</span><br>
+                         <small style="color: #6c757d;">{sentiment_reason}</small>
+                    </div>
+
+                    {action_items_html}
+                    {decisions_html}
+                    {questions_html}
+
+                    <details style="margin-top: 25px;">
+                        <summary style="font-weight: bold; color: #5a4fb7; cursor: pointer;">View Full Transcript</summary>
+                        <div style="background-color: #f8f9fa; border: 1px solid #eee; padding: 15px; margin-top: 10px; border-radius: 4px; max-height: 200px; overflow-y: auto;">
+                            <p style="white-space: pre-wrap; font-size: 14px;">{transcript_text}</p>
+                        </div>
+                    </details>
+                </div>
+                <div style="background-color: #f8f9fa; text-align: center; padding: 15px; font-size: 12px; color: #999;">
+                    <p>This email was automatically generated by Samwaad AI.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
     async def send_meeting_summary(
         self,
         attendees: List[str],

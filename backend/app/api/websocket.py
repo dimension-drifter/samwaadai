@@ -16,6 +16,8 @@ import shutil
 from datetime import datetime
 import dateutil.parser
 import pytz
+from app.services.email_service import EmailService
+
 
 
 router = APIRouter()
@@ -139,6 +141,7 @@ async def websocket_endpoint(
     ai_service = AIService()
     crm_service = CRMService()
     calendar_service = CalendarService()
+    email_service = EmailService()
     
     call = db.query(Call).filter(Call.id == call_id).first()
     if not call:
@@ -222,16 +225,16 @@ async def websocket_endpoint(
                         print("🎯 Transcribing...")
                         transcript_data = await stt_service.transcribe_audio_file(temp_audio_path)
                         
-                        if transcript_data.get('text') and len(transcript_data['text']) > 5:
-                            print("🧠 Generating insights...")
-                            insights = await ai_service.extract_meeting_insights(transcript_data)
-                        else:
-                            insights = {
-                                'summary': f'No speech detected. Debug file: {debug_audio_path}',
-                                'action_items': [],
-                                'key_decisions': [],
-                                'sentiment': 'NEUTRAL'
-                            }
+                        # if transcript_data.get('text') and len(transcript_data['text']) > 5:
+                        #     print("🧠 Generating insights...")
+                        #     insights = await ai_service.extract_meeting_insights(transcript_data)
+                        # else:
+                        #     insights = {
+                        #         'summary': f'No speech detected. Debug file: {debug_audio_path}',
+                        #         'action_items': [],
+                        #         'key_decisions': [],
+                        #         'sentiment': 'NEUTRAL'
+                        #     }
                         
                         full_text = transcript_data.get('text', '')
 
@@ -307,6 +310,24 @@ async def websocket_endpoint(
                         
                         call.status = "completed"
                         db.commit()
+
+                                                # In a real app, this would come from the call object or frontend.
+                        recipient_email = "iambossdiscord01@gmail.com"
+                        
+                        if recipient_email:
+                            print(f"🚀 Attempting to send analysis email to {recipient_email}...")
+                            email_result = await email_service.send_post_meeting_analysis(
+                                to_email=recipient_email,
+                                insights=insights,
+                                transcript_text=full_text
+                            )
+                            if email_result.get("success"):
+                                print(f"✅ Analysis email sent successfully. Message ID: {email_result.get('message_id')}")
+                            else:
+                                print(f"❌ Failed to send analysis email. Error: {email_result.get('error')}")
+                        else:
+                            print("🤷 No recipient email found, skipping analysis email.")
+
                         
                         await crm_service.log_interaction({
                             'contact_email': 'participant@example.com',
@@ -324,11 +345,14 @@ async def websocket_endpoint(
                             "transcript": transcript_data,
                             "call_id": call_id
                         })
-                        print(f"✅ Call {call_id} completed")
+                        print(f"✅ Call {call_id} processing complete. Notifying client.")
                         
                     except ValueError as ve:
-                        raise ve
+                        # This handles errors like silent audio
+                        print(f"❌ Value Error during processing: {ve}")
+                        await websocket.send_json({"type": "error", "message": str(ve)})
                     
+                    print("🏁 Breaking WebSocket loop.")
                     break
             
             elif "bytes" in data:

@@ -3,8 +3,11 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
 from app.models.call import Call
+from app.models.user import User
 from app.schemas.call import CallCreate, CallResponse, CallUpdate
 from datetime import datetime
+from app.services.ai_service import AIService
+from app.api.auth import get_current_user  # ADD THIS LINE
 
 router = APIRouter()
 
@@ -191,5 +194,48 @@ async def get_call_insights(
         "action_items": call.action_items,
         "key_decisions": call.key_decisions,
         "participants": call.participants,
+        "topics": call.topics
+    }
+
+@router.get("/{call_id}/analyze")
+async def analyze_call_endpoint(
+    call_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Analyze a call for AI-generated insights (summary, sentiment, action items, etc.)
+    
+    This endpoint triggers the AI analysis for a specific call. The analysis results
+    are then updated in the call record.
+    """
+    
+    call = db.query(Call).filter(Call.id == call_id).first()
+    
+    if not call:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Call with ID {call_id} not found"
+        )
+    
+    # Perform analysis using the AI service
+    summary, sentiment, action_items, key_decisions, topics = await AIService.analyze_call(call)
+    
+    # Update call record with analysis results
+    call.summary = summary
+    call.sentiment = sentiment
+    call.action_items = action_items
+    call.key_decisions = key_decisions
+    call.topics = topics
+    
+    db.commit()
+    db.refresh(call)
+    
+    return {
+        "call_id": call.id,
+        "summary": call.summary,
+        "sentiment": call.sentiment,
+        "action_items": call.action_items,
+        "key_decisions": call.key_decisions,
         "topics": call.topics
     }

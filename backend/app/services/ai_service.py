@@ -49,33 +49,40 @@ class AIService:
 
         # --- START OF THE NEW, SUPERCHARGED PROMPT ---
         prompt = f"""
-        You are an expert AI meeting analyst. Your task is to analyze the following meeting transcript and extract detailed, structured information.
+            You are a world-class AI meeting analyst for a platform called Samwaad AI. Your task is to analyze the following meeting transcript and provide a deep, structured analysis.
 
-        Transcript:
-        ---
-        {full_text}
-        ---
+            Transcript:
+            ---
+            {full_text}
+            ---
 
-        Analyze the entire transcript and respond ONLY with a single, valid JSON object. The JSON object must have the following keys:
+            Carefully analyze the entire transcript and respond ONLY with a single, valid JSON object. The JSON object must have the following keys:
 
-        1.  "summary": A concise, professional paragraph summarizing the key topics and outcomes of the meeting.
-        
-        2.  "sentiment": An object analyzing the overall meeting sentiment. It must contain:
+            1. "title": A short, descriptive title for the meeting, max 5-7 words.
+
+            2. "summary": A concise, professional summary formatted as a markdown string. It must include three sections: 'Abstract' (2-3 sentence overview), 'Key Points' (a bulleted list of 3-5 main topics), and 'Next Steps' (a brief closing sentence).
+
+            3. "sentiment": An object analyzing the meeting's tone. It must contain:
             - "overall_sentiment": A single word: "POSITIVE", "NEGATIVE", or "NEUTRAL".
             - "reasoning": A brief sentence explaining why this sentiment was chosen, citing parts of the conversation.
 
-        3.  "attendees": A list of strings identifying the names of the people who spoke or were mentioned in the meeting.
+            4. "attendees": A list of strings identifying the names of the speakers or people mentioned (e.g., ["John", "Sarah", "Mike"]).
 
-        4.  "action_items": A list of JSON objects. Each object represents a clear, actionable task and must contain:
-            - "task": A string describing the specific action to be taken.
-            - "owner": A string identifying the person or team responsible for the task. Default to "Unassigned" if not clear.
-            - "deadline": A string representing the due date or timeframe mentioned (e.g., "next Friday", "EOD tomorrow"). Default to "Not specified" if none.
+            5. "action_items": A list of JSON objects. Each object represents a clear, actionable task and must contain:
+            - "task": A string describing the specific action.
+            - "owner": A string identifying the person responsible. Default to "Unassigned".
+            - "deadline": A string for the due date mentioned. Default to "Not specified".
 
-        5.  "key_decisions": A list of strings, where each string is a significant decision or commitment made during the meeting.
+            6. "key_decisions": A list of strings, where each string is a significant decision or firm commitment made.
 
-        Do not include any text or explanations outside of the JSON object.
-        """
-        
+            7. "questions_asked": A list of strings, where each string is an important question that was asked during the meeting.
+
+            8. "chapters": A list of JSON objects that break the meeting into logical sections. Each object must contain:
+            - "title": A short title for the chapter (e.g., "Introductions", "Project Update", "Q&A").
+            - "summary": A one-sentence summary of what was discussed in that chapter.
+            
+            Do not include any text, explanations, or markdown formatting outside of the main JSON object.
+            """
         try:
             # Your existing Gemini call is perfect. No changes needed here.
             response = await self.model.generate_content_async(
@@ -88,11 +95,11 @@ class AIService:
             insights = json.loads(cleaned_response)
             
             # Ensure all keys exist to prevent errors later
-            for key in ['summary', 'sentiment', 'attendees', 'action_items', 'key_decisions']:
+            for key in ['title', 'summary', 'sentiment', 'attendees', 'action_items', 'key_decisions', 'questions_asked', 'chapters']:
                 if key not in insights:
-                    insights[key] = self._default_insights()[key] # Use default for missing keys
+                    insights[key] = self._default_insights()[key]
             
-            print("✅ AI generated comprehensive insights.")
+            print("✅ AI generated professional-grade insights.")
             return insights
         except Exception as e:
             print(f"❌ Error generating insights with Gemini: {str(e)}")
@@ -295,18 +302,20 @@ class AIService:
             return "Unable to generate meeting summary"
     
     def _default_insights(self) -> Dict:
-        """Return default insights structure"""
+        """Return a default, empty insights structure to prevent errors."""
         return {
+            "title": "Meeting Analysis",
+            "summary": "### Abstract\nNo summary could be generated.\n\n### Key Points\n- Analysis could not be completed.\n\n### Next Steps\nN/A",
+            "sentiment": {
+                "overall_sentiment": "UNKNOWN",
+                "reasoning": "Analysis could not be completed."
+            },
+            "attendees": [],
             "action_items": [],
             "key_decisions": [],
-            "follow_ups": [],
-            "participants": [],
-            "topics": [],
-            "sentiment": "neutral",
-            "summary": "Unable to extract insights",
-            "next_steps": []
+            "questions_asked": [],
+            "chapters": []
         }
-
     # Add this method inside the AIService class in ai_service.py
 
     async def extract_actionable_tasks(self, full_text: str) -> List[Dict]:

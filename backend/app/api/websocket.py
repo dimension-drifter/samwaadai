@@ -296,11 +296,14 @@ async def websocket_endpoint(
                         call.transcript = transcript_data # Storing the full STT result is good practice
                         
                         # Save the new structured data
+                        call.title = insights.get('title')
                         call.summary = insights.get('summary')
-                        call.sentiment = insights.get('sentiment') # This is now an object
+                        call.sentiment = insights.get('sentiment')
                         call.action_items = insights.get('action_items', [])
                         call.key_decisions = insights.get('key_decisions', [])
-                        call.attendees = insights.get('attendees', []) # Save the new attendees field
+                        call.attendees = insights.get('attendees', [])
+                        call.questions_asked = insights.get('questions_asked', [])
+                        call.chapters = insights.get('chapters', [])
                         
                         call.status = "completed"
                         db.commit()

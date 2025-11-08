@@ -25,15 +25,16 @@ class Call(Base):
     full_transcript_text = Column(Text, nullable=True)
     
     # AI Analysis
+    title = Column(String, nullable=True) # ADD THIS LINE
     summary = Column(Text, nullable=True)
-    sentiment = Column(JSON, nullable=True)  # positive, negative, neutral
-    confidence_score = Column(Float, nullable=True)
+    sentiment = Column(JSON, nullable=True)
     
     # Extracted data
     action_items = Column(JSON, default=[])
     key_decisions = Column(JSON, default=[])
-    topics = Column(JSON, default=[])
     attendees = Column(JSON, default=[])
+    questions_asked = Column(JSON, default=[]) # ADD THIS LINE
+    chapters = Column(JSON, default=[]) # ADD THIS LINE
     # Status
     status = Column(String, default="in_progress")  # in_progress, completed, failed
     

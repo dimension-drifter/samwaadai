@@ -273,7 +273,11 @@ class CRMService:
                 interaction_data.get('contact_email'),
                 interaction_data.get('contact_name', 'Unknown')
             )
-            
+            summary = interaction_data.get('summary')
+            # The sentiment is now an object, so we must stringify it
+            sentiment_str = json.dumps(interaction_data.get('sentiment')) if interaction_data.get('sentiment') else None
+            action_items_str = json.dumps(interaction_data.get('action_items', []))
+            metadata_str = json.dumps(interaction_data.get('metadata', {}))
             # Insert interaction
             cursor.execute("""
                 INSERT INTO interactions (
@@ -285,11 +289,11 @@ class CRMService:
                 interaction_data.get('type', 'call'),
                 interaction_data.get('date', datetime.utcnow()),
                 interaction_data.get('duration_seconds', 0),
-                interaction_data.get('summary'),
-                interaction_data.get('sentiment'),
-                json.dumps(interaction_data.get('action_items', [])),
+                summary,
+                sentiment_str,        # Use the stringified version
+                action_items_str,     # Use the stringified version
                 interaction_data.get('recording_url'),
-                json.dumps(interaction_data.get('metadata', {}))
+                metadata_str 
             ))
             
             # Update contact last interaction

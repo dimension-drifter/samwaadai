@@ -51,15 +51,7 @@ class WebSocketManager {
                     isFloat32: false,
                     timezone: userTimezone // ADD THIS LINE
                 }));
-                // Send audio configuration
-                this.ws.send(JSON.stringify({
-                    type: 'audio_config',
-                    sampleRate: audioContext.sampleRate,
-                    channels: 1,
-                    sampleWidth: 2,
-                    isFloat32: false
-                }));
-
+                
                 // Send start recording message
                 this.ws.send(JSON.stringify({
                     type: 'start_recording'
@@ -207,40 +199,75 @@ class WebSocketManager {
         // Display results
         const resultsDiv = document.getElementById('transcriptionResults');
         if (resultsDiv) {
-            const sentiment = insights.sentiment || { overall_sentiment: 'UNKNOWN', reasoning: '' };
+             const sentiment = insights.sentiment || { /* ... */ };
 
+            const converter = new showdown.Converter();
+            
+            const summaryHtml = converter.makeHtml(insights.summary || 'No summary available');
+            
             resultsDiv.innerHTML = `
                 <div class="results-container">
-                    <h3>💡 AI Summary</h3>
-                    <div class="summary-text">
-                        ${insights.summary || 'No summary available'}
+                    <h2 style="font-size: 24px; margin-bottom: 20px;">${insights.title || 'Meeting Analysis'}</h2>
+
+                    <div class="insights-grid">
+                        <div class="insight-card">
+                            <h3>💡 AI Summary</h3>
+                            <div class="summary-text">
+                                ${summaryHtml}
+                            </div>
+                        </div>
+
+                        <div class="insight-card">
+                            <h3>Sentiment Analysis</h3>
+                            <div class="sentiment-badge ${sentiment.overall_sentiment.toLowerCase()}">
+                                ${sentiment.overall_sentiment}
+                            </div>
+                            <p><em>${sentiment.reasoning || ''}</em></p>
+                        </div>
                     </div>
 
-                    <h3>Sentiment Analysis</h3>
-                    <div class="sentiment-badge ${sentiment.overall_sentiment.toLowerCase()}">
-                        Overall Sentiment: ${sentiment.overall_sentiment}
+                    ${insights.chapters && insights.chapters.length > 0 ? `
+                        <h3>Chapters</h3>
+                        <div class="chapters-container">
+                            ${insights.chapters.map(chap => `
+                                <div class="chapter-item">
+                                    <strong>${chap.title}</strong>: ${chap.summary}
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+
+                    <div class="insights-grid">
+                        <div class="insight-card">
+                            ${insights.action_items && insights.action_items.length > 0 ? `
+                                <h3>✅ Action Items</h3>
+                                <ul class="action-items">
+                                    ${insights.action_items.map(item => `<li><strong>${item.task || 'N/A'}</strong> (Owner: ${item.owner || 'Unassigned'}, Deadline: ${item.deadline || 'N/A'})</li>`).join('')}
+                                </ul>
+                            ` : '<h3>✅ Action Items</h3><p>No action items detected.</p>'}
+                        </div>
+                        <div class="insight-card">
+                             ${insights.key_decisions && insights.key_decisions.length > 0 ? `
+                                <h3>🎯 Key Decisions</h3>
+                                <ul class="key-decisions">
+                                    ${insights.key_decisions.map(item => `<li>${item}</li>`).join('')}
+                                </ul>
+                            ` : '<h3>🎯 Key Decisions</h3><p>No key decisions detected.</p>'}
+                        </div>
                     </div>
-                    <p><em>${sentiment.reasoning || ''}</em></p>
                     
+                    ${insights.questions_asked && insights.questions_asked.length > 0 ? `
+                        <h3>❓ Key Questions</h3>
+                        <ul class="key-questions">
+                            ${insights.questions_asked.map(q => `<li>${q}</li>`).join('')}
+                        </ul>
+                    ` : ''}
+
                     ${insights.attendees && insights.attendees.length > 0 ? `
                         <h3>👥 Attendees</h3>
                         <p>${insights.attendees.join(', ')}</p>
                     ` : ''}
 
-                    ${insights.action_items && insights.action_items.length > 0 ? `
-                        <h3>✅ Action Items</h3>
-                        <ul class="action-items">
-                            ${insights.action_items.map(item => `<li><strong>${item.task || 'N/A'}</strong> (Owner: ${item.owner || 'Unassigned'}, Deadline: ${item.deadline || 'N/A'})</li>`).join('')}
-                        </ul>
-                    ` : ''}
-                    
-                    ${insights.key_decisions && insights.key_decisions.length > 0 ? `
-                        <h3>🎯 Key Decisions</h3>
-                        <ul class="key-decisions">
-                            ${insights.key_decisions.map(item => `<li>${item}</li>`).join('')}
-                        </ul>
-                    ` : ''}
-                    
                     <h3>📝 Full Transcript</h3>
                     <div class="transcript-text">
                         ${transcript.text || 'No speech detected'}

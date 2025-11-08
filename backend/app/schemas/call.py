@@ -24,7 +24,7 @@ class CallUpdate(BaseModel):
     end_time: Optional[datetime] = None
     transcript: Optional[List[Dict]] = None
     summary: Optional[str] = None
-    sentiment: Optional[str] = None
+    sentiment: Optional[Dict] = None 
     action_items: Optional[List[Dict]] = None
 
 class CallResponse(CallBase):
@@ -36,7 +36,7 @@ class CallResponse(CallBase):
     duration_seconds: int
     status: str
     summary: Optional[str]
-    sentiment: Optional[str]
+    sentiment: Optional[Dict] = None 
     action_items: List[Dict]
     
     class Config:

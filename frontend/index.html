@@ -25,7 +25,7 @@
                 <span class="nav-icon"></span>
                 <span class="nav-text">Reports</span>
             </a>
-            <a href="email.html" class="nav-item">
+            <a href="#" class="nav-item">
                 <span class="nav-icon">✉️</span>
                 <span class="nav-text">Email</span>
                 <span class="nav-action">+</span>
@@ -187,5 +187,216 @@
     <script src="js/api.js"></script>
     <script src="js/websocket.js"></script>
     <script src="js/app.js"></script>
+    <!-- Upload helper: allow uploading a recorded audio file and stream it over the existing WebSocket transcription API -->
+    <input type="file" id="audioUploadInput" accept="audio/*" style="display: none;" />
+    <script>
+        // Wire the Upload button to open file picker
+        document.addEventListener('DOMContentLoaded', () => {
+            const uploadBtn = document.querySelector('.upload-btn');
+            const fileInput = document.getElementById('audioUploadInput');
+
+            if (uploadBtn && fileInput) {
+                uploadBtn.addEventListener('click', () => fileInput.click());
+                fileInput.addEventListener('change', async (e) => {
+                    const file = e.target.files && e.target.files[0];
+                    if (!file) return;
+                    try {
+                        await uploadAndTranscribeFile(file);
+                    } catch (err) {
+                        console.error('Upload/Transcription failed:', err);
+                        alert('Failed to transcribe file: ' + (err.message || err));
+                    } finally {
+                        // reset input so same file can be chosen again
+                        fileInput.value = '';
+                    }
+                });
+            }
+        });
+
+        async function uploadAndTranscribeFile(file) {
+            // Create a call record first (reuses existing API)
+            const call = await API.createCall({ platform: 'web', contact_name: 'Uploaded File', contact_email: '' });
+            const callId = call.id;
+
+            // Update UI
+            const statusDiv = document.getElementById('recordingStatus');
+            if (statusDiv) {
+                statusDiv.textContent = 'Uploading audio and transcribing...';
+                statusDiv.className = 'recording-status processing';
+                statusDiv.style.display = 'block';
+            }
+
+            // Decode audio file to Float32 samples
+            const arrayBuffer = await file.arrayBuffer();
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const decoded = await audioCtx.decodeAudioData(arrayBuffer);
+
+            // Resample to 48000 if needed
+            const targetSampleRate = 48000;
+            const processedBuffer = decoded.sampleRate === targetSampleRate ? decoded : await resampleAudioBuffer(decoded, targetSampleRate);
+
+            // Use first channel
+            const channelData = processedBuffer.numberOfChannels > 0 ? processedBuffer.getChannelData(0) : processedBuffer.getChannelData(0);
+
+            // Open WebSocket to backend for this call
+            const ws = new WebSocket(`ws://localhost:8000/ws/call/${callId}`);
+
+            ws.binaryType = 'arraybuffer';
+
+            ws.onopen = () => {
+                console.log('WS open — sending audio_config and start_recording');
+                const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                ws.send(JSON.stringify({
+                    type: 'audio_config',
+                    sampleRate: targetSampleRate,
+                    channels: 1,
+                    sampleWidth: 2,
+                    isFloat32: false,
+                    timezone: userTimezone
+                }));
+
+                ws.send(JSON.stringify({ type: 'start_recording' }));
+
+                // Stream audio in chunks
+                const chunkSize = 4096; // samples per chunk
+                let offset = 0;
+                while (offset < channelData.length) {
+                    const end = Math.min(offset + chunkSize, channelData.length);
+                    const slice = channelData.subarray(offset, end);
+
+                    // Convert Float32 [-1..1] to Int16 PCM
+                    const int16 = new Int16Array(slice.length);
+                    for (let i = 0; i < slice.length; i++) {
+                        const s = Math.max(-1, Math.min(1, slice[i]));
+                        int16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+                    }
+
+                    try {
+                        ws.send(int16.buffer);
+                    } catch (e) {
+                        console.warn('Failed to send chunk over WS:', e);
+                    }
+
+                    offset = end;
+                }
+
+                // Signal end of recording
+                ws.send(JSON.stringify({ type: 'stop_recording' }));
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('WS message:', data.type);
+
+                    if (data.type === 'processing_started') {
+                        if (statusDiv) statusDiv.textContent = 'Processing audio on server...';
+                    } else if (data.type === 'call_completed') {
+                        // Reuse the same UI update logic as WebSocketManager.handleTranscriptionComplete
+                        displayTranscriptionResults(data);
+                        if (statusDiv) {
+                            statusDiv.textContent = '✅ Transcription complete!';
+                            statusDiv.className = 'recording-status completed';
+                        }
+                        ws.close();
+                    } else if (data.type === 'error') {
+                        throw new Error(data.message || 'Server error');
+                    }
+                } catch (err) {
+                    console.error('Error handling WS message:', err);
+                }
+            };
+
+            ws.onerror = (err) => {
+                console.error('WebSocket error:', err);
+                alert('WebSocket error while uploading audio. Is the backend running?');
+                if (statusDiv) statusDiv.textContent = '❌ WebSocket error';
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket closed');
+            };
+        }
+
+        // Resample using OfflineAudioContext
+        async function resampleAudioBuffer(audioBuffer, targetSampleRate) {
+            if (audioBuffer.sampleRate === targetSampleRate) return audioBuffer;
+            const numberOfChannels = audioBuffer.numberOfChannels;
+            const offlineCtx = new OfflineAudioContext(numberOfChannels, Math.ceil(audioBuffer.duration * targetSampleRate), targetSampleRate);
+            const bufferSource = offlineCtx.createBufferSource();
+            bufferSource.buffer = audioBuffer;
+            bufferSource.connect(offlineCtx.destination);
+            bufferSource.start(0);
+            const rendered = await offlineCtx.startRendering();
+            return rendered;
+        }
+
+        function displayTranscriptionResults(message) {
+            const { insights, transcript } = message;
+            const resultsDiv = document.getElementById('transcriptionResults');
+            if (!resultsDiv) return;
+
+            const sentiment = insights.sentiment || { overall_sentiment: 'NEUTRAL', reasoning: '' };
+            const converter = new showdown.Converter();
+            const summaryHtml = converter.makeHtml(insights.summary || 'No summary available');
+
+            resultsDiv.innerHTML = `
+                <div class="results-container">
+                    <h2 style="font-size: 24px; margin-bottom: 20px;">${insights.title || 'Meeting Analysis'}</h2>
+
+                    <div class="insights-grid">
+                        <div class="insight-card">
+                            <h3>💡 AI Summary</h3>
+                            <div class="summary-text">${summaryHtml}</div>
+                        </div>
+
+                        <div class="insight-card">
+                            <h3>Sentiment Analysis</h3>
+                            <div class="sentiment-badge ${sentiment.overall_sentiment.toLowerCase()}">${sentiment.overall_sentiment}</div>
+                            <p><em>${sentiment.reasoning || ''}</em></p>
+                        </div>
+                    </div>
+
+                    ${insights.chapters && insights.chapters.length > 0 ? `
+                        <h3>Chapters</h3>
+                        <div class="chapters-container">
+                            ${insights.chapters.map(chap => `
+                                <div class="chapter-item"><strong>${chap.title}</strong>: ${chap.summary}</div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+
+                    <div class="insights-grid">
+                        <div class="insight-card">
+                            ${insights.action_items && insights.action_items.length > 0 ? `
+                                <h3>✅ Action Items</h3>
+                                <ul class="action-items">${insights.action_items.map(item => `<li><strong>${item.task || 'N/A'}</strong> (Owner: ${item.owner || 'Unassigned'}, Deadline: ${item.deadline || 'N/A'})</li>`).join('')}</ul>
+                            ` : '<h3>✅ Action Items</h3><p>No action items detected.</p>'}
+                        </div>
+                        <div class="insight-card">
+                            ${insights.key_decisions && insights.key_decisions.length > 0 ? `
+                                <h3>🎯 Key Decisions</h3>
+                                <ul class="key-decisions">${insights.key_decisions.map(item => `<li>${item}</li>`).join('')}</ul>
+                            ` : '<h3>🎯 Key Decisions</h3><p>No key decisions detected.</p>'}
+                        </div>
+                    </div>
+
+                    ${insights.questions_asked && insights.questions_asked.length > 0 ? `
+                        <h3>❓ Key Questions</h3>
+                        <ul class="key-questions">${insights.questions_asked.map(q => `<li>${q}</li>`).join('')}</ul>
+                    ` : ''}
+
+                    ${insights.attendees && insights.attendees.length > 0 ? `
+                        <h3>👥 Attendees</h3>
+                        <p>${insights.attendees.join(', ')}</p>
+                    ` : ''}
+
+                    <h3>📝 Full Transcript</h3>
+                    <div class="transcript-text">${transcript.text || 'No speech detected'}</div>
+                </div>
+            `;
+            resultsDiv.style.display = 'block';
+        }
+    </script>
 </body>
 </html>

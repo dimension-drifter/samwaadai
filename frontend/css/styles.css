@@ -1447,3 +1447,98 @@ input:checked + .toggle-slider:before {
         bottom: 20px;
     }
 }
+
+/* ===== ADDED: Modal Styles for Call Details ===== */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 2000; /* Sit on top of everything */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 5% auto; /* 5% from the top and centered */
+    padding: 30px;
+    border: 1px solid #888;
+    width: 90%; /* Responsive width */
+    max-width: 1000px; /* Maximum width for large screens */
+    border-radius: 12px;
+    position: relative;
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.2);
+    animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.close-btn {
+    color: #aaa;
+    float: right;
+    font-size: 32px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.2s;
+    line-height: 1;
+}
+
+.close-btn:hover,
+.close-btn:focus {
+    color: #5a4fb7;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* Modal Specific Content Styles */
+#callDetailContent h2 {
+    font-size: 24px;
+    color: #1d1d1f;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #e5e5e7;
+    padding-bottom: 10px;
+}
+
+#callDetailContent h3 {
+    color: #5a4fb7;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    font-size: 18px;
+}
+
+#callDetailContent .detail-section {
+    margin-bottom: 20px;
+    padding: 15px;
+    border-radius: 8px;
+    background: #f8f9fb;
+    border: 1px solid #e5e5e7;
+}
+
+#callDetailContent .detail-section ul {
+    padding-left: 20px;
+    margin-top: 10px;
+    list-style: disc;
+}
+#callDetailContent .detail-section li {
+    margin-bottom: 8px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.modal-transcript-text {
+    white-space: pre-wrap; /* Preserve formatting from the transcript text */
+    font-family: monospace;
+    font-size: 13px;
+    background: #fff;
+    padding: 15px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    max-height: 400px;
+    overflow-y: auto;
+}

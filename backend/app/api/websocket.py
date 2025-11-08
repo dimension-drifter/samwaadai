@@ -252,9 +252,21 @@ async def websocket_endpoint(
                                 
                                 if calendar_service.authenticate():
                                     try:
+                                        # Validate required fields
+                                        start_time_str = task.get("start_time")
+                                        summary = task.get("summary")
+                                        
+                                        if not start_time_str:
+                                            print(f"❌ Missing start_time in calendar task: {task}")
+                                            continue
+                                        
+                                        if not summary:
+                                            print(f"❌ Missing summary in calendar task: {task}")
+                                            continue
+                                        
                                         # --- START OF MODIFICATION ---
                                         # 1. Parse the naive datetime string from the AI
-                                        naive_start_time = dateutil.parser.isoparse(task.get("start_time"))
+                                        naive_start_time = dateutil.parser.isoparse(start_time_str)
                                         
                                         # 2. Get the timezone object for the user's timezone
                                         local_tz = pytz.timezone(user_timezone)
@@ -264,11 +276,21 @@ async def websocket_endpoint(
                                         
                                         print(f"🌍 Correctly interpreted start time: {aware_start_time.isoformat()}")
 
+                                        # Safely convert duration_minutes to int
+                                        duration = task.get("duration_minutes", 30)
+                                        if duration is None:
+                                            duration = 30
+                                        try:
+                                            duration_int = int(duration)
+                                        except (ValueError, TypeError):
+                                            print(f"⚠️ Invalid duration_minutes value: {duration}, using default 30")
+                                            duration_int = 30
+
                                         event_result = await calendar_service.create_event(
-                                            summary=task.get("summary"),
+                                            summary=task.get("summary", "Meeting"),
                                             description=task.get("description", "Event scheduled by Samwaad AI."),
                                             start_time=aware_start_time, # 4. Use the new aware datetime object
-                                            duration_minutes=int(task.get("duration_minutes", 30)),
+                                            duration_minutes=duration_int,
                                             attendees=task.get("attendees", []),
                                             timezone=user_timezone
                                         )

@@ -28,16 +28,23 @@ class CallUpdate(BaseModel):
     action_items: Optional[List[Dict]] = None
 
 class CallResponse(CallBase):
-    """Schema for call response"""
+    """Schema for call response (UPDATED FOR FULL DETAILS)"""
     id: int
     user_id: int
     start_time: datetime
     end_time: Optional[datetime]
     duration_seconds: int
     status: str
+    
+    # AI Analysis & Transcription Fields (ADDED)
+    title: Optional[str] = None
     summary: Optional[str]
     sentiment: Optional[Dict] = None 
-    action_items: List[Dict]
+    action_items: List[Dict] = []
+    key_decisions: List[str] = [] # ADDED
+    questions_asked: List[str] = [] # ADDED
+    chapters: List[Dict] = [] # ADDED
+    full_transcript_text: Optional[str] = None # ADDED
     
     class Config:
         from_attributes = True

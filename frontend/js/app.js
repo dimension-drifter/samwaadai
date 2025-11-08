@@ -19,6 +19,16 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Check microphone permissions
     checkMicrophonePermissions();
+
+    // Close modal when clicking outside of it
+    const modal = document.getElementById('callDetailModal');
+    if (modal) {
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    }
 });
 
 function setupEventListeners() {
@@ -175,10 +185,12 @@ function displayRecentCalls(calls) {
         const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
         
         // Calculate read score (mock data - you can replace with actual logic)
-        const readScore = call.sentiment === 'POSITIVE' ? 87 : call.sentiment === 'NEUTRAL' ? 75 : 65;
+        // Use call.sentiment for better score logic
+        const sentiment = (call.sentiment && call.sentiment.overall_sentiment) || 'NEUTRAL';
+        const readScore = sentiment === 'POSITIVE' ? 87 : sentiment === 'NEUTRAL' ? 75 : 65;
         
         return `
-            <tr>
+            <tr onclick="viewCallDetails(${call.id})" style="cursor: pointer;"> 
                 <td class="col-source">
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <span style="font-size: 20px;">🎙️</span>
@@ -186,7 +198,7 @@ function displayRecentCalls(calls) {
                 </td>
                 <td class="col-report">
                     <div style="display: flex; align-items: center; gap: 8px;">
-                        <strong>Call #${call.id}</strong>
+                        <strong>${call.title || `Call #${call.id}`}</strong>
                         ${call.contact_name && call.contact_name !== 'Live Recording' ? `
                             <span style="color: #86868b;">- ${call.contact_name}</span>
                         ` : ''}
@@ -217,10 +229,89 @@ function displayRecentCalls(calls) {
     }).join('');
 }
 
-function viewCallDetails(callId) {
-    // TODO: Implement call details modal
-    console.log('View call:', callId);
-    alert(`Call details for ID: ${callId}\nThis feature will be implemented soon.`);
+/**
+ * Loads and displays the full details of a specific call in a modal. (NEW FUNCTION)
+ * @param {number} callId - The ID of the call to display.
+ */
+async function viewCallDetails(callId) {
+    const modal = document.getElementById('callDetailModal');
+    const contentDiv = document.getElementById('callDetailContent');
+    
+    contentDiv.innerHTML = '<h2 style="color: #5a4fb7;">Loading Call Details...</h2><p>Please wait...</p>';
+    modal.style.display = 'block';
+
+    try {
+        // Fetch the full call data from the backend
+        const call = await API.getCall(callId);
+        
+        // Initialize Markdown converter (from showdown.min.js in index.html)
+        const converter = new showdown.Converter();
+        
+        // Convert Markdown summary to HTML for display
+        const summaryHtml = converter.makeHtml(call.summary || '<em>No summary generated.</em>');
+        
+        const sentiment = call.sentiment || { overall_sentiment: 'NEUTRAL', reasoning: 'N/A' };
+        
+        const actionItemsHtml = call.action_items && call.action_items.length > 0
+            ? `<ul>${call.action_items.map(item => `<li><strong>${item.task || 'N/A'}</strong> (Owner: ${item.owner || 'Unassigned'}, Deadline: ${item.deadline || 'N/A'})</li>`).join('')}</ul>`
+            : '<p>No action items detected.</p>';
+
+        const decisionsHtml = call.key_decisions && call.key_decisions.length > 0
+            ? `<ul>${call.key_decisions.map(item => `<li>${item}</li>`).join('')}</ul>`
+            : '<p>No key decisions recorded.</p>';
+            
+        const chaptersHtml = call.chapters && call.chapters.length > 0
+            ? `<ul>${call.chapters.map(chap => `<li><strong>${chap.title}</strong>: ${chap.summary}</li>`).join('')}</ul>`
+            : '<p>No chapters generated.</p>';
+
+        contentDiv.innerHTML = `
+            <h2 style="color: #5a4fb7;">${call.title || `Call #${call.id}`}</h2>
+            <p style="font-size: 14px; color: #86868b; margin-bottom: 20px;">
+                <strong>Platform:</strong> ${call.platform} | 
+                <strong>Start:</strong> ${new Date(call.start_time).toLocaleString()} | 
+                <strong>Duration:</strong> ${Math.floor(call.duration_seconds / 60)}m ${call.duration_seconds % 60}s | 
+                <strong>Status:</strong> <span class="status-badge ${call.status}">${call.status.replace('_', ' ')}</span>
+            </p>
+
+            <h3>💡 AI Summary</h3>
+            <div class="detail-section">
+                ${summaryHtml}
+                <div class="sentiment-badge ${sentiment.overall_sentiment.toLowerCase()}" style="margin-top: 15px;">
+                    ${sentiment.overall_sentiment}
+                </div>
+                <p style="font-size: 13px; color: #5e5e66; margin-top: 5px;"><em>${sentiment.reasoning || 'Reasoning not available.'}</em></p>
+            </div>
+            
+            <div style="display: flex; gap: 20px;">
+                <div class="detail-section" style="flex: 1;">
+                    <h3>✅ Action Items</h3>
+                    ${actionItemsHtml}
+                </div>
+                <div class="detail-section" style="flex: 1;">
+                    <h3>🎯 Key Decisions</h3>
+                    ${decisionsHtml}
+                </div>
+            </div>
+
+            <h3>📚 Meeting Chapters</h3>
+            <div class="detail-section">
+                ${chaptersHtml}
+            </div>
+
+            <h3>📝 Full Transcript</h3>
+            <div class="modal-transcript-text">
+                ${call.full_transcript_text || '<em>Full transcript not available or speech not detected.</em>'}
+            </div>
+        `;
+
+    } catch (error) {
+        console.error('❌ Failed to fetch call details:', error);
+        contentDiv.innerHTML = `
+            <h2 style="color: #ff3b30;">Error Loading Details</h2>
+            <p>Could not load call details for ID: ${callId}.</p>
+            <p>Error: ${error.message}</p>
+        `;
+    }
 }
 
 // Make functions globally accessible
